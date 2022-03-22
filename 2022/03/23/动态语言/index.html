@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>从零开发一个脚本语言 | Hexo</title>
+  <meta name="description" content="构建一套脚本语言开发一个脚本语言当有三个关键部分组成  指令集 编译&#x2F;词法分析 虚拟机  指令集cpu只会按照固定的逻辑处理输入，这些固定的逻辑就是由逻辑门组成的复杂电路实现的指令集。 静态语言诸如C，C++他们都是直接被编译为对应CPU的指令集(汇编)，这也赋予了他们极高的运行效率，但这也导致了这些语言的开发者不得不关注硬件在运行时的状态最显著的就是需要手动管理内存，诸如HLSL，CG之类的语言">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从零开发一个脚本语言">
+<meta property="og:url" content="https://qingbot.github.io/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/index.html">
+<meta property="og:site_name" content="qingbot">
+<meta property="og:description" content="构建一套脚本语言开发一个脚本语言当有三个关键部分组成  指令集 编译&#x2F;词法分析 虚拟机  指令集cpu只会按照固定的逻辑处理输入，这些固定的逻辑就是由逻辑门组成的复杂电路实现的指令集。 静态语言诸如C，C++他们都是直接被编译为对应CPU的指令集(汇编)，这也赋予了他们极高的运行效率，但这也导致了这些语言的开发者不得不关注硬件在运行时的状态最显著的就是需要手动管理内存，诸如HLSL，CG之类的语言">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-03-22T16:26:44.378Z">
+<meta property="article:modified_time" content="2022-03-22T16:27:31.685Z">
+<meta property="article:author" content="qingbot@foxmail.com">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://qingbot.github.io/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="qingbot" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 5.4.1"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/qingbot" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">qingbot</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">游戏开发者</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> guangzhou, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/qingbot" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+
+    
+      
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">三月 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">二月 2022</a><span class="archive-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/" class="title">从零开发一个脚本语言</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-03-22T16:26:44.378Z" itemprop="datePublished">2022-03-23</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/" class="title">使用C++实现软光栅</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-02-28T13:31:30.398Z" itemprop="datePublished">2022-02-28</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2022/02/27/hello-world/" class="title">Hello World</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-02-27T15:25:36.313Z" itemprop="datePublished">2022-02-27</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-动态语言" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      从零开发一个脚本语言
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/" class="article-date">
+	  <time datetime="2022-03-22T16:26:44.378Z" itemprop="datePublished">2022-03-23</time>
+	</a>
+</span>
+        
+        
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h2 id="构建一套脚本语言"><a href="#构建一套脚本语言" class="headerlink" title="构建一套脚本语言"></a>构建一套脚本语言</h2><p>开发一个脚本语言当有三个关键部分组成</p>
+<ul>
+<li>指令集</li>
+<li>编译/词法分析</li>
+<li>虚拟机</li>
+</ul>
+<h2 id="指令集"><a href="#指令集" class="headerlink" title="指令集"></a>指令集</h2><p>cpu只会按照固定的逻辑处理输入，这些固定的逻辑就是由逻辑门组成的复杂电路实现的指令集。</p>
+<p>静态语言诸如C，C++他们都是直接被编译为对应CPU的指令集(汇编)，这也赋予了他们极高的运行效率，但这也导致了这些语言的开发者不得不关注硬件在运行时的状态最显著的就是需要手动管理内存，诸如HLSL，CG之类的语言，你甚至得考虑处理器的架构，减少逻辑表达式的使用以提高运行效率。</p>
+<p>对于Python之类的解释型语言也是基于指令集运行的，只不过在设计指令集时就完全不需要受到来自物理的约束，甚至可以针对某一类目标任务定制指令集。</p>
+<p>不管那种语言其指令集本质上都是相似的：四则运算，跳转指令，数据移动</p>
+<p>就比如：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> x = <span class="number">2</span>;</span><br><span class="line"><span class="type">int</span> a = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">if</span>(x==<span class="number">3</span>)</span><br><span class="line">   a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">   a = <span class="number">2</span>;</span><br></pre></td></tr></table></figure>
+
+<p>其对应的汇编为</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">	movl	$2, 8(%rsp)	# 将2 放到地址8</span><br><span class="line">	movl	$0, 4(%rsp)	# 将0 放到地址4</span><br><span class="line">	cmpl	$3, 8(%rsp) # 执行3-地址8 但只影响标志位</span><br><span class="line">	jne	.LBB0_2			# 检测标志位 不相等则跳转到 .LBB0_2 相当于跳过了if</span><br><span class="line"># %bb.1:</span><br><span class="line">	movl	$1, 4(%rsp)	# 如果相等就继续执行下去 </span><br><span class="line">	jmp	.LBB0_3			# 跳转的.LBB0_3 相当于跳过了else</span><br><span class="line">.LBB0_2:				# else的内容</span><br><span class="line">	movl	$2, 4(%rsp)</span><br><span class="line">.LBB0_3:</span><br></pre></td></tr></table></figure>
+
+<p>一个好的指令集，将直接决定了运行的效率，以上的x86指令集只需要比较指令和跳转即可实现if-else。</p>
+<h2 id="词法分析"><a href="#词法分析" class="headerlink" title="词法分析"></a>词法分析</h2><p>编程语言在设计时要尽可能方便人类理解，符合人类逻辑，而处理器只能理解指令集，所以这就需要一个转换的过程。</p>
+<p>词法分析的过程本质上只是一个工程问题，一般都是一个巨大的状态机，通过空格，分号，括号将代码分割成一个个关键字，然后逐个读取关键字，根据读取到的关键字改变对于接下来的关键字的处理方式。如果你打开lua的源代码你就会发现，里面一堆if-else就是在处理这些字符串。</p>
+<p>编译器的好坏直接影响了程序运行时的效率，你当然可以两条指令实现if-else，也可以一堆指令绕来绕去的实现。</p>
+<h2 id="虚拟机"><a href="#虚拟机" class="headerlink" title="虚拟机"></a>虚拟机</h2><p>虚拟机是用软件模拟的CPU，读取指令并执行。</p>
+<p>虚拟机不应当关注非常底层的运算，诸如总线调度，设备IO，中断链，这些交给真正的CPU操作系统去干即可，当然如果你要是为了极致的定制化(我相信不会是为了性能，因为你实现的性能大概率不如微软)而自己调度所运行程序的IO，线程任务，那么就是底层的任务调度算法，诸如：时间片轮转，多级优先队列….实际上虚拟机应当着重关心内存管理，除非你的脚本语言也需要用户自己手动管理。</p>
+<h3 id="内存的分配与回收"><a href="#内存的分配与回收" class="headerlink" title="内存的分配与回收"></a>内存的分配与回收</h3><p>主流的内存管理算法方案基本上相似的，提前申请一大块内存，然后向用户分配这些内存，待用户不用时回收，不同算法的差异就在于怎么分配，如何回收。</p>
+<p><strong>懒一点的分配</strong>，手里的那一大块内存按顺序分配，要多少给多少，不够再向操作系统申请。好处是，内存在分配时是连续的有效的提高cache命中率，因为CPU会一次性加载目标内存附近的内存到cache，但是这样在回收时带来一个问题按顺序分配的内存并不会按顺序回收，导致大量的内存碎片产生，内存碎片将严重影响内存的利用率，而且在碎片中寻找可复用的内存，本身就在降低cache的命中率，因为新申请的内存将不再连续，C#对此的解决方案是垃圾回收时再重新给继续活下去的内存搬个家，使之重新致密。</p>
+<p><strong>好兄弟分配法</strong>：将一大块内存不断二分直到找到一个能够满足需求的最小内存块，因为是二分那么分配出去的一块内存就会有一个等大的空闲内存被分割出来，这样的好处在于回收，回收时将考虑好兄弟的状态，如果好兄弟也处于空闲状态那么这两个兄弟又可以合并为一个大内存，大内存又可以继续向上合并，这样内存碎片的问题就解决了，但此方案其实是会浪费内存的，因为每次分配出去的内存大小必定大于等于需求量，多出来的那些内存就将被浪费无法分配。</p>
+<p><strong>slab算法</strong>：为大量细粒度且高频使用的对象分配空间，但不回收，对象销毁时只是将其置于为初始化状态，待下一个对象实例出现时只需要重新初始化即可，类似于对象的缓存。python会为字符串创建这样的缓存。</p>
+<p>内存分配与回收实际上是操作系统需要关心的事情，因为我们无法直接接触到物理内存，运行在操作系统上的程序需要从操作系统获取内存，对于我们更多的需要是关心如何处理已经得到的内存，就比如垃圾回收。</p>
+<h3 id="垃圾回收"><a href="#垃圾回收" class="headerlink" title="垃圾回收"></a>垃圾回收</h3><p>了解了物理内存如何分配与回收，接下来就是垃圾回收机制该如何运行</p>
+<p>被动一点的：当触发垃圾回收时挂起工作线程，扫描内存将没有被引用的内存标记为垃圾，然后统一清除掉。好处是有一个中央的垃圾回收器统领全局，可把握好垃圾回收的时间。缺点是如果把握不好那就会造成程序卡顿。</p>
+<p>主动一点的：智能指针，每个对象都有一个引用计数，每次析构时计数减一，当引用技术为0时清除该内存。</p>
+<h3 id="执行"><a href="#执行" class="headerlink" title="执行"></a>执行</h3><p>CPU靠时钟信号驱动一次运算，对应的虚拟机就是main函数，其外层应当也是一个循环，不断的驱动虚拟机读取和执行指令。</p>
+<p>虚拟机在设计时不应该过分的迷恋CPU的结构，更多的是软件工程的东西。</p>
+<p>指令应当保证一定能力的独立性，以避免指令之间的耦合，尽量不要出现某一条指令必须在某一指令之后运行，为了配合这一点，在设计虚拟机的时候就需要给予一定的配合。比如标志位，寄存器，虚拟机的状态…指令之间通过这些东西相互交流。</p>
+<p>虚拟机本身可以就是一个大号的状态机，设计一些能力高一点的指令以改变虚拟机的执行逻辑，可以使得我们的脚本语言有更高的灵活性。比如我们甚至可以在运行时改变虚拟机的运行速度，IO速度；或者改变任务优先级，在有限的时间里分配好算力。</p>
+<h4 id="多线程支持"><a href="#多线程支持" class="headerlink" title="多线程支持"></a>多线程支持</h4><p>虚拟机可以向操作系统申请更多的线程提供给自己的指令，难点就在于如何设计虚拟机使得脚本语言在执行时不会相互干扰，数据互通。</p>
+<p>我们先看看操作系统是如何处理线程的，操作系统会给每一个线程开辟一个线程控制块，线程专属的内存空间，使得线程拥有自己的作用域。我们也可以按照这种优秀的设计：</p>
+<p>当读取到开辟线程的相关指令之后，虚拟机开辟一个专属的内存空间给予给此线程，申请一片内存空间其实并不准确，因为线程在运行时肯定会有更多的内存需求，更好的方法是给每一个线程一个专属的内存构造器，内存构造器负责维护线程内存的范围，以及优化内存的分配，统一管理避免野指针。然后再赋予每一个线程一个头部，用于记录线程的运行状态，以供主线程调度这些线程。</p>
+<p>当然对于全局变量，要保证其在多线程环境下的安全，此时我们可以学习Python的优秀设计：全局锁和自带的线程安全的数据结构。</p>
+<p>我们可以给全局变量的每一次访问都加一个锁，来保证线程安全，当然这些都是虚拟机层面的，对于用户他并不会感受到这一过程，它只需要按照需求访问相关变量即可，完全不用关心多线程的事情。</p>
+<p>自带线程安全的数据结构：用户并不是每一次对数据的需求都是基础数据，更多的是诸如链表操作之类的，对于这些操作可以在设计层面实现无锁编程。</p>
+<h4 id="并行计算"><a href="#并行计算" class="headerlink" title="并行计算"></a>并行计算</h4><p>我们可以学习显卡的架构，少量的控制器，控制着大量的运算器。当然CPU的并行运算能力相对较低，我们可以用来计算大量相同过程但输入不同的代码。</p>
+<p>我们可以设计一个名为parallel的指令：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">parallel  12    //表示接下来的操作将计算12份结果</span><br><span class="line">....</span><br><span class="line">endParallel</span><br></pre></td></tr></table></figure>
+
+<p>在实现层面，在读取到parallel指令后开辟12个内存空间并赋予不同的初始值以让每个并行知道自己是第几个。我们采取逐过程并行，一条条指令的并行，指令每读取一条即执行12次，只不过每次的执行的内存空间不同，那么碰到if-else怎么办循环次数不一样怎么办，这就是显卡运算时的问题，答案是没办法，要么是当不进入if时标记一下，屏蔽掉这个并行。要么是分支预测，先两种结果都算出来，然后再回退到目标结果。</p>
+<p>当然根据CPU的特性实现以上的逐过程运算可以更高效，<strong>多线程加迭代器模式</strong>，开启12个线程，每运算完一个指令就<strong>挂起</strong>等待主线程的信号，由主线程控制子线程的运算过程。</p>
+<p>这样似乎就在CPU上实现GPU的虚拟机。当然似乎并没有什么用。</p>
+<h4 id="基于网络的跨设备计算"><a href="#基于网络的跨设备计算" class="headerlink" title="基于网络的跨设备计算"></a>基于网络的跨设备计算</h4><p>指令可以通过网络传递到其他的物理设备上，然后计算完把结果传递回来，对于用户层感知不到这一过程，这样的话复杂运算就可以交给算力更高的设备。</p>
+<p>好像HarmonyOS提出的理念就是这个</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://qingbot.github.io/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/" title="从零开发一个脚本语言" target="_blank" rel="external">https://qingbot.github.io/2022/03/23/动态语言/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/qingbot" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/qingbot" target="_blank"><span class="text-dark">qingbot</span><small class="ml-1x">游戏开发者</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    
+    <li class="next">
+      <a href="/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/" title="使用C++实现软光栅"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/qingbot" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>
