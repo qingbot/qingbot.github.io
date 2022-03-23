@@ -25,10 +25,12 @@
 <meta property="og:site_name" content="qingbot">
 <meta property="og:description" content="写这篇文章的时候正是2021年，正值大四，此时的我正在西山居实习，记录一下自己用了一个星期实现的软光栅 软光栅所谓软光栅就是在软件层面模拟出来一个完整的光栅化渲染流水线，而正常的渲染流水线是固化在显卡的硬件电路里的。一次光栅化包含一下阶段：  CPU数据准备阶段 顶点着色器 光栅化，背面剔除 片元着色器，染色 模板测试，深度测试 合并输出  对于我们来说这就是一个个按顺序执行的函数 作为包裹这一切">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="d:/GitHubBlog/blog/public/images/ra0.png">
 <meta property="article:published_time" content="2022-02-28T13:31:30.398Z">
-<meta property="article:modified_time" content="2022-03-22T17:01:23.848Z">
+<meta property="article:modified_time" content="2022-03-23T16:13:49.153Z">
 <meta property="article:author" content="qingbot@foxmail.com">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="d:/GitHubBlog/blog/public/images/ra0.png">
   <!-- Canonical links -->
   <link rel="canonical" href="https://qingbot.github.io/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/index.html">
   
@@ -255,6 +257,13 @@
         
 
         
+	<span class="article-read hidden-xs">
+	    <i class="icon icon-eye-fill" aria-hidden="true"></i>
+	    <span id="busuanzi_container_page_pv">
+			<span id="busuanzi_value_page_pv">0</span>
+		</span>
+	</span>
+
 
         <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/#comments" class="article-comment-link">评论</a></span>
         
@@ -282,6 +291,36 @@
 <p>在顶点着色器中，主要就是坐标变换，用户需要完成的主要是MVP，模型转世界转投影。</p>
 <p>接下来Class Render会统一进行齐次除法，然后视口裁剪，最后再进行屏幕空间变换。</p>
 <p>此时z坐标就是深度信息。</p>
+<p>当然由于精度的问题现在很多游戏都采用reversalZ</p>
+<h2 id="光栅化"><a href="#光栅化" class="headerlink" title="光栅化"></a>光栅化</h2><p>在进行完坐标转换之后，就是光栅化的过程，需要将顶点转换为三角形，然后由三角形生成片元，并插值基础属性。</p>
+<p>将顶点转换为三角形是一个自然而然的过程，因为有顶点索引，只需要根据顶点的索引即可直接生成对应的三角形，若用户开启了背面剔除，那么可在此阶段将处于背面的三角形直接舍弃掉。</p>
+<p>由三角形生成片元是一个我所了解到的有两种算法：</p>
+<ul>
+<li>x扫描线</li>
+<li>权重光栅</li>
+</ul>
+<p>x扫描线即在三角形三条边围起来的区域内从下往上扫描，每次前进一个像素，在一根扫描线上从左往右扫描，在扫描的过程中将会把三个顶点的数据插值给每一个片元，这包含了顶点坐标，uv…. 详细算法可以参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/ChenglinBen/article/details/90374845">活性边</a></p>
+<p>权重光栅似乎是一个更为合理的方案，其会考虑三个顶点对每一个片元的权重然后根据这个权重给片元插值。</p>
+<p>此时我们就得到了众多片元。</p>
+<h2 id="片元着色器"><a href="#片元着色器" class="headerlink" title="片元着色器"></a>片元着色器</h2><p>片元着色器就是另一个常用的着色了，其操作对象是上一步生成的片元。</p>
+<p>在片元着色器中我们可以使用一些光照模型为片元赋予颜色。由于本文的重点是软光栅所以光照模型的选择我就使用了最简单的lambert。</p>
+<p>这一步之后，每一个片元将会得到属于自己的颜色信息。</p>
+<h2 id="模板测试，深度测试，混合"><a href="#模板测试，深度测试，混合" class="headerlink" title="模板测试，深度测试，混合"></a>模板测试，深度测试，混合</h2><p>然后我们需要的就是将片元输出到颜色缓冲上了。</p>
+<p>颜色缓冲就是一个二维数组。</p>
+<p>在光栅化阶段我们就已经得到了每一个片元对应颜色缓冲的位置信息了，接下来我们只需要将片元逐步写入颜色缓冲即可，只不过写入时要进行两项测试。</p>
+<p>模板测试用于实现一些高级效果，基本原理其实就是一个mask而已，就不再赘述。</p>
+<p>深度测试则具备更高的普适性，每一个片元在写入时要与已经写入的片元的深度信息进行比对，被遮挡则舍弃不再写入。</p>
+<p>有时写入并不是单纯的覆盖掉颜色缓冲，也是需要根据alpha值进行一些混合再写入。</p>
+<hr>
+<p>以上就是一次forward管线的渲染流程。</p>
+<p>当然写的较为简略。</p>
+<h2 id="阴影的渲染"><a href="#阴影的渲染" class="headerlink" title="阴影的渲染"></a>阴影的渲染</h2><p>借助以上已经实现的流程是可以实现阴影的渲染的。</p>
+<p>我们只需要将摄像机的相关矩阵设置为 正交投影矩阵，方向与光照方向一致即可。</p>
+<p>然后使用光源摄像机完成一次渲染。当然这次渲染写入颜色缓冲的不是颜色信息而是深度信息该图称之为shadowMap，之后正常渲染流程中每个片元将自己的坐标转换进光源空间并得到深度信息，与ShadowMap里面的值进行比对即可判断自己是否被太阳直射。</p>
+<p>阴影的渲染实际上会遇到各种问题，比如shadowbias，阴影锯齿。</p>
+<p>bias的产生其实是精度的问题，光源空间和摄像机空间各自在渲染时是以像素为单位离散的渲染，但是这个世界是连续的。这两个空间的转换时离散的渲染问题就会表现为bias，说直白一点就是在渲染时两个像素之间的空间是<strong>被舍弃掉的</strong>，然而光源空间被舍弃掉的并不能与相机空间舍弃掉的完美对应，于是就产生的bias问题，此时只能给深度加一个数值，整体抬高以避免此问题。</p>
+<p>另一个锯齿问题说到底也是精度的问题，我们可以使用PCF解决，PCF说白一点就是对周围加权平均。所以PCF核的选择很重要。</p>
+<p><img src="D:\GitHubBlog\blog\public\images\ra0.png" alt="ra0"></p>
 
       
     </div>
@@ -467,6 +506,8 @@ window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
 
 
    
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
 
 
 
