@@ -26,7 +26,7 @@
 <meta property="og:description" content="构建一套脚本语言开发一个脚本语言当有三个关键部分组成  指令集 编译&#x2F;词法分析 虚拟机  指令集cpu只会按照固定的逻辑处理输入，这些固定的逻辑就是由逻辑门组成的复杂电路实现的指令集。 静态语言诸如C，C++他们都是直接被编译为对应CPU的指令集(汇编)，这也赋予了他们极高的运行效率，但这也导致了这些语言的开发者不得不关注硬件在运行时的状态最显著的就是需要手动管理内存，诸如HLSL，CG之类的语言">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-03-22T16:26:44.378Z">
-<meta property="article:modified_time" content="2022-03-22T16:27:31.685Z">
+<meta property="article:modified_time" content="2022-03-23T15:08:04.144Z">
 <meta property="article:author" content="qingbot@foxmail.com">
 <meta name="twitter:card" content="summary">
   <!-- Canonical links -->
@@ -58,7 +58,7 @@
           <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
         </a>
         <h2 id="name" class="hidden-xs hidden-sm">qingbot</h2>
-        <h3 id="title" class="hidden-xs hidden-sm hidden-md">游戏开发者</h3>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">游戏开发者，qingbot@foxmail.com</h3>
         <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> guangzhou, China</small>
       </div>
       
@@ -290,8 +290,8 @@
 <p><strong>slab算法</strong>：为大量细粒度且高频使用的对象分配空间，但不回收，对象销毁时只是将其置于为初始化状态，待下一个对象实例出现时只需要重新初始化即可，类似于对象的缓存。python会为字符串创建这样的缓存。</p>
 <p>内存分配与回收实际上是操作系统需要关心的事情，因为我们无法直接接触到物理内存，运行在操作系统上的程序需要从操作系统获取内存，对于我们更多的需要是关心如何处理已经得到的内存，就比如垃圾回收。</p>
 <h3 id="垃圾回收"><a href="#垃圾回收" class="headerlink" title="垃圾回收"></a>垃圾回收</h3><p>了解了物理内存如何分配与回收，接下来就是垃圾回收机制该如何运行</p>
-<p>被动一点的：当触发垃圾回收时挂起工作线程，扫描内存将没有被引用的内存标记为垃圾，然后统一清除掉。好处是有一个中央的垃圾回收器统领全局，可把握好垃圾回收的时间。缺点是如果把握不好那就会造成程序卡顿。</p>
-<p>主动一点的：智能指针，每个对象都有一个引用计数，每次析构时计数减一，当引用技术为0时清除该内存。</p>
+<p>标记式的垃圾回收：当触发垃圾回收时挂起工作线程，从根对象开始遍历整个对象树，将遍历到的对象标记为存活，之后将所有未标记为存活的对象回收掉，当然此时可能有循环引用问题，循环引用标记阶段会导致死循环的发生，此时在遍历对象树时判断一下是否已经进行过标记可避免死循环的发生。这种垃圾回收会导致程序卡顿，尤其是在游戏领域偶尔的卡顿是及其难受的，所以我采取的一种优化手段就是分帧完成，可以分帧标记，也可以分帧回收。然后就是内存碎片的问题碎片不仅会导致内存利用率低也会导致cache命中率低。所以我们可以学习C#之类的手段，每次回收完毕可以将内存分代存储，也可以直接重新压缩使之致密。</p>
+<p>智能指针：我们可以给每一个对象提供自己的引用计数，当计数为0时回收这段内存，由于缺乏中央式的管理，这样的内存分配方法很难处理内存碎片。所以我们可以提供一个中央式的内存管理器，每经过一定次数的内存回收，中央管理器可以重新搬运压缩内存空间。</p>
 <h3 id="执行"><a href="#执行" class="headerlink" title="执行"></a>执行</h3><p>CPU靠时钟信号驱动一次运算，对应的虚拟机就是main函数，其外层应当也是一个循环，不断的驱动虚拟机读取和执行指令。</p>
 <p>虚拟机在设计时不应该过分的迷恋CPU的结构，更多的是软件工程的东西。</p>
 <p>指令应当保证一定能力的独立性，以避免指令之间的耦合，尽量不要出现某一条指令必须在某一指令之后运行，为了配合这一点，在设计虚拟机的时候就需要给予一定的配合。比如标志位，寄存器，虚拟机的状态…指令之间通过这些东西相互交流。</p>
@@ -302,7 +302,7 @@
 <p>当然对于全局变量，要保证其在多线程环境下的安全，此时我们可以学习Python的优秀设计：全局锁和自带的线程安全的数据结构。</p>
 <p>我们可以给全局变量的每一次访问都加一个锁，来保证线程安全，当然这些都是虚拟机层面的，对于用户他并不会感受到这一过程，它只需要按照需求访问相关变量即可，完全不用关心多线程的事情。</p>
 <p>自带线程安全的数据结构：用户并不是每一次对数据的需求都是基础数据，更多的是诸如链表操作之类的，对于这些操作可以在设计层面实现无锁编程。</p>
-<h4 id="并行计算"><a href="#并行计算" class="headerlink" title="并行计算"></a>并行计算</h4><p>我们可以学习显卡的架构，少量的控制器，控制着大量的运算器。当然CPU的并行运算能力相对较低，我们可以用来计算大量相同过程但输入不同的代码。</p>
+<h4 id="基于过程的并行"><a href="#基于过程的并行" class="headerlink" title="基于过程的并行"></a>基于过程的并行</h4><p>我们可以学习显卡的架构，少量的控制器，控制着大量的运算器。当然CPU的并行运算能力相对较低，我们可以用来计算大量相同过程但输入不同的代码。</p>
 <p>我们可以设计一个名为parallel的指令：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">parallel  12    //表示接下来的操作将计算12份结果</span><br><span class="line">....</span><br><span class="line">endParallel</span><br></pre></td></tr></table></figure>
 
@@ -339,8 +339,8 @@
         </a>
       </div>
       <div class="media-body">
-        <h3 class="media-heading"><a href="https://github.com/qingbot" target="_blank"><span class="text-dark">qingbot</span><small class="ml-1x">游戏开发者</small></a></h3>
-        <div>个人简介。</div>
+        <h3 class="media-heading"><a href="https://github.com/qingbot" target="_blank"><span class="text-dark">qingbot</span><small class="ml-1x">游戏开发者，qingbot@foxmail.com</small></a></h3>
+        <div>这孩子从小就想做游戏</div>
       </div>
     </figure>
   </div>
