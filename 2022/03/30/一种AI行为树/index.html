@@ -17,22 +17,20 @@
   <meta http-equiv="window-target" content="_top" />
   
   
-  <title>使用C++实现软光栅 | Hexo</title>
-  <meta name="description" content="写这篇文章的时候正是2021年，正值大四，此时的我正在西山居实习，记录一下自己用了一个星期实现的软光栅 软光栅所谓软光栅就是在软件层面模拟出来一个完整的光栅化渲染流水线，而正常的渲染流水线是固化在显卡的硬件电路里的。一次光栅化包含一下阶段：  CPU数据准备阶段 顶点着色器 光栅化，背面剔除 片元着色器，染色 模板测试，深度测试 合并输出  对于我们来说这就是一个个按顺序执行的函数 作为包裹这一切">
+  <title>一种行为树的实现 | Hexo</title>
+  <meta name="description" content="行为树游戏内常用的NPC的控制逻辑，本质上是使用软件工程的方法优化的一堆if-else，所有的非叶子节点负责逻辑判断，最终选中执行逻辑的叶子节点。 从人类本身出发行为树无疑是在模拟一个人决策的过程。我认为一个人思考应当遵循以下过程：  决策需要来自外界的输入，我们的感觉，触觉，视觉，听觉，味觉，这些都是接受输入的方式，但人类还包含自我思考产生的自我驱动。 决策需要经验的积累与自身的特征思考方式。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="使用C++实现软光栅">
-<meta property="og:url" content="https://qingbot.github.io/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/index.html">
+<meta property="og:title" content="一种行为树的实现">
+<meta property="og:url" content="https://qingbot.github.io/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/index.html">
 <meta property="og:site_name" content="qingbot">
-<meta property="og:description" content="写这篇文章的时候正是2021年，正值大四，此时的我正在西山居实习，记录一下自己用了一个星期实现的软光栅 软光栅所谓软光栅就是在软件层面模拟出来一个完整的光栅化渲染流水线，而正常的渲染流水线是固化在显卡的硬件电路里的。一次光栅化包含一下阶段：  CPU数据准备阶段 顶点着色器 光栅化，背面剔除 片元着色器，染色 模板测试，深度测试 合并输出  对于我们来说这就是一个个按顺序执行的函数 作为包裹这一切">
+<meta property="og:description" content="行为树游戏内常用的NPC的控制逻辑，本质上是使用软件工程的方法优化的一堆if-else，所有的非叶子节点负责逻辑判断，最终选中执行逻辑的叶子节点。 从人类本身出发行为树无疑是在模拟一个人决策的过程。我认为一个人思考应当遵循以下过程：  决策需要来自外界的输入，我们的感觉，触觉，视觉，听觉，味觉，这些都是接受输入的方式，但人类还包含自我思考产生的自我驱动。 决策需要经验的积累与自身的特征思考方式。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="d:/GitHubBlog/blog/public/images/ra0.png">
-<meta property="article:published_time" content="2022-02-28T13:31:30.398Z">
-<meta property="article:modified_time" content="2022-03-23T16:13:49.153Z">
+<meta property="article:published_time" content="2022-03-30T13:16:45.081Z">
+<meta property="article:modified_time" content="2022-03-30T13:16:34.943Z">
 <meta property="article:author" content="qingbot@foxmail.com">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="d:/GitHubBlog/blog/public/images/ra0.png">
   <!-- Canonical links -->
-  <link rel="canonical" href="https://qingbot.github.io/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/index.html">
+  <link rel="canonical" href="https://qingbot.github.io/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/index.html">
   
     <link rel="alternate" href="/atom.xml" title="qingbot" type="application/atom+xml">
   
@@ -249,14 +247,14 @@
   
 <main class="main" role="main">
   <div class="content">
-  <article id="post-使用C++实现光栅化渲染器" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+  <article id="post-一种AI行为树" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
     
     <div class="article-header">
       
         
   
     <h1 class="article-title" itemprop="name">
-      使用C++实现软光栅
+      一种行为树的实现
     </h1>
   
 
@@ -264,8 +262,8 @@
       <div class="article-meta">
         <span class="article-date">
     <i class="icon icon-calendar-check"></i>
-	<a href="/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/" class="article-date">
-	  <time datetime="2022-02-28T13:31:30.398Z" itemprop="datePublished">2022-02-28</time>
+	<a href="/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/" class="article-date">
+	  <time datetime="2022-03-30T13:16:45.081Z" itemprop="datePublished">2022-03-30</time>
 	</a>
 </span>
         
@@ -280,62 +278,29 @@
 	</span>
 
 
-        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/#comments" class="article-comment-link">评论</a></span>
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/#comments" class="article-comment-link">评论</a></span>
         
       </div>
     </div>
     <div class="article-entry marked-body" itemprop="articleBody">
       
-        <p>写这篇文章的时候正是2021年，正值大四，此时的我正在西山居实习，记录一下自己用了一个星期实现的软光栅</p>
-<h1 id="软光栅"><a href="#软光栅" class="headerlink" title="软光栅"></a>软光栅</h1><p>所谓软光栅就是在软件层面模拟出来一个完整的光栅化渲染流水线，而正常的渲染流水线是固化在显卡的硬件电路里的。<br>一次光栅化包含一下阶段：</p>
+        <h2 id="行为树"><a href="#行为树" class="headerlink" title="行为树"></a>行为树</h2><p>游戏内常用的NPC的控制逻辑，本质上是使用软件工程的方法优化的一堆if-else，所有的非叶子节点负责逻辑判断，最终选中执行逻辑的叶子节点。</p>
+<h2 id="从人类本身出发"><a href="#从人类本身出发" class="headerlink" title="从人类本身出发"></a>从人类本身出发</h2><p>行为树无疑是在模拟一个人决策的过程。我认为一个人思考应当遵循以下过程：</p>
 <ul>
-<li>CPU数据准备阶段</li>
-<li>顶点着色器</li>
-<li>光栅化，背面剔除</li>
-<li>片元着色器，染色</li>
-<li>模板测试，深度测试</li>
-<li>合并输出</li>
+<li>决策需要来自外界的输入，我们的感觉，触觉，视觉，听觉，味觉，这些都是接受输入的方式，但人类还包含自我思考产生的自我驱动。</li>
+<li>决策需要经验的积累与自身的特征思考方式。</li>
+<li>决策之后应当专注于当前的决策，但不应该停止处理外界的信息。</li>
+<li>决策会受到外界中断而随时改变，即使一个决策正在执行。</li>
 </ul>
-<p>对于我们来说这就是一个个按顺序执行的函数</p>
-<p>作为包裹这一切的，我们创建一个Class Render</p>
-<h2 id="数据准备阶段"><a href="#数据准备阶段" class="headerlink" title="数据准备阶段"></a>数据准备阶段</h2><p>此时我们将顶点的位置信息，顶点索引信息，顶点颜色，顶点UV准备好，一次性打包完毕等待渲染。</p>
-<p>我们创建一个Class Model来组织顶点数据</p>
-<p>还需要构建MVP矩阵</p>
-<h2 id="顶点着色器"><a href="#顶点着色器" class="headerlink" title="顶点着色器"></a>顶点着色器</h2><p>顶点着色器是一个可以由用户自定义控制的着色器，用户在这里处理顶点信息。</p>
-<p>对于软光栅，我们可以使Class Model拥有一个VertexShader的函数来模拟这一过程，每渲染一个顶点调用一次VertexShader函数，这样就对每一个模型都实现了自己的VertexShader。当然也可以给每一个Model一个Class Shader专门负责处理相关的着色器，还顺便方便拓展与复用。</p>
-<p>在顶点着色器中，主要就是坐标变换，用户需要完成的主要是MVP，模型转世界转投影。</p>
-<p>接下来Class Render会统一进行齐次除法，然后视口裁剪，最后再进行屏幕空间变换。</p>
-<p>此时z坐标就是深度信息。</p>
-<p>当然由于精度的问题现在很多游戏都采用reversalZ</p>
-<h2 id="光栅化"><a href="#光栅化" class="headerlink" title="光栅化"></a>光栅化</h2><p>在进行完坐标转换之后，就是光栅化的过程，需要将顶点转换为三角形，然后由三角形生成片元，并插值基础属性。</p>
-<p>将顶点转换为三角形是一个自然而然的过程，因为有顶点索引，只需要根据顶点的索引即可直接生成对应的三角形，若用户开启了背面剔除，那么可在此阶段将处于背面的三角形直接舍弃掉。</p>
-<p>由三角形生成片元是一个我所了解到的有两种算法：</p>
-<ul>
-<li>x扫描线</li>
-<li>权重光栅</li>
-</ul>
-<p>x扫描线即在三角形三条边围起来的区域内从下往上扫描，每次前进一个像素，在一根扫描线上从左往右扫描，在扫描的过程中将会把三个顶点的数据插值给每一个片元，这包含了顶点坐标，uv…. 详细算法可以参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/ChenglinBen/article/details/90374845">活性边</a></p>
-<p>权重光栅似乎是一个更为合理的方案，其会考虑三个顶点对每一个片元的权重然后根据这个权重给片元插值。</p>
-<p>此时我们就得到了众多片元。</p>
-<h2 id="片元着色器"><a href="#片元着色器" class="headerlink" title="片元着色器"></a>片元着色器</h2><p>片元着色器就是另一个常用的着色了，其操作对象是上一步生成的片元。</p>
-<p>在片元着色器中我们可以使用一些光照模型为片元赋予颜色。由于本文的重点是软光栅所以光照模型的选择我就使用了最简单的lambert。</p>
-<p>这一步之后，每一个片元将会得到属于自己的颜色信息。</p>
-<h2 id="模板测试，深度测试，混合"><a href="#模板测试，深度测试，混合" class="headerlink" title="模板测试，深度测试，混合"></a>模板测试，深度测试，混合</h2><p>然后我们需要的就是将片元输出到颜色缓冲上了。</p>
-<p>颜色缓冲就是一个二维数组。</p>
-<p>在光栅化阶段我们就已经得到了每一个片元对应颜色缓冲的位置信息了，接下来我们只需要将片元逐步写入颜色缓冲即可，只不过写入时要进行两项测试。</p>
-<p>模板测试用于实现一些高级效果，基本原理其实就是一个mask而已，就不再赘述。</p>
-<p>深度测试则具备更高的普适性，每一个片元在写入时要与已经写入的片元的深度信息进行比对，被遮挡则舍弃不再写入。</p>
-<p>有时写入并不是单纯的覆盖掉颜色缓冲，也是需要根据alpha值进行一些混合再写入。</p>
-<hr>
-<p>以上就是一次forward管线的渲染流程。</p>
-<p>当然写的较为简略。</p>
-<h2 id="阴影的渲染"><a href="#阴影的渲染" class="headerlink" title="阴影的渲染"></a>阴影的渲染</h2><p>借助以上已经实现的流程是可以实现阴影的渲染的。</p>
-<p>我们只需要将摄像机的相关矩阵设置为 正交投影矩阵，方向与光照方向一致即可。</p>
-<p>然后使用光源摄像机完成一次渲染。当然这次渲染写入颜色缓冲的不是颜色信息而是深度信息该图称之为shadowMap，之后正常渲染流程中每个片元将自己的坐标转换进光源空间并得到深度信息，与ShadowMap里面的值进行比对即可判断自己是否被太阳直射。</p>
-<p>阴影的渲染实际上会遇到各种问题，比如shadowbias，阴影锯齿。</p>
-<p>bias的产生其实是精度的问题，光源空间和摄像机空间各自在渲染时是以像素为单位离散的渲染，但是这个世界是连续的。这两个空间的转换时离散的渲染问题就会表现为bias，说直白一点就是在渲染时两个像素之间的空间是<strong>被舍弃掉的</strong>，然而光源空间被舍弃掉的并不能与相机空间舍弃掉的完美对应，于是就产生的bias问题，此时只能给深度加一个数值，整体抬高以避免此问题。</p>
-<p>另一个锯齿问题说到底也是精度的问题，我们可以使用PCF解决，PCF说白一点就是对周围加权平均。所以PCF核的选择很重要。</p>
-<p><img src="D:\GitHubBlog\blog\public\images\ra0.png" alt="ra0"></p>
+<p>因为外界的输入而改变，因自己的状态而自我修正，因行为结果的好坏而自我改变，一旦决定就坚决执行。</p>
+<h2 id="软件工程实现"><a href="#软件工程实现" class="headerlink" title="软件工程实现"></a>软件工程实现</h2><p>基于以上考虑，事件-Tick混合的行为树将是我们需要的。</p>
+<p>我们的感，触，视，听，味将由事件触发，对应在游戏内就是诸如碰撞事件之类的外部事件，而自我运行时审查将由Tick完成，它将评估自己正在进行的行为是否依然符合自己的预期。</p>
+<p>思考本身就是行为树选择一条路径的过程，人与人之间的思维差异也应当来自于因成长过程的区别而导致的路径选择的差异，也就是自身经验积累的不同；对此我们将设计一个特殊的行为树逻辑节点，此节点会根据历史，自我更新，当然这个节点其实反游戏的，因为游戏内NPC的逻辑当然需要严格根据策划的需求执行，自我更新将产生不确定性，为了避免这一点，自我更新的方向应当遵循一条固定逻辑，对于这个节点下文会细说。</p>
+<p>决策应当专注而不是随时改变，这其实是一条前提，我们认为NPC应该专注，因此我们可以根据此前提而优化我们的行为树，使之Tick的性能消耗降低。</p>
+<p>为了保证专注于一条决策时性能消耗可以降低又不会错过自我决策，行为树将采取<strong>信号量积累以及优先级事件</strong>。当一个节点被专注执行时，Tick将被将为最低只对保留评估当前决策的合法性，以及接受外部事件，但是外部事件并不会直接介入行为树，而是积累对应事件的信号量，当信号量积累到超过正在执行的事件的优先级，此时会立刻发起事件<strong>中断信号</strong>，行为树进入中断Tick模式，非叶子节点会记住自己拥有的全部叶子节点的信号量感兴趣程度的<strong>最小值</strong>，如果所有的叶子节点都对此事件的信号量不足够感兴趣，则该节点不会执行以达到<strong>剪枝</strong>的效果。</p>
+<h3 id="特殊的逻辑节点"><a href="#特殊的逻辑节点" class="headerlink" title="特殊的逻辑节点"></a>特殊的逻辑节点</h3><p>以上的行为树设计在于对行为树的理解方式：</p>
+<p>行为树不应该只是对固定逻辑的软件工程优化，而应该具备在固定逻辑下拥有一定的不确定性，当然这个不确定性是对用户而言的而不是对策划，这一能力来自于那个特殊的行为树逻辑节点：</p>
+<p>该节点有不同的类型，但都符合一个主题，自我更新，一部分的自我更新来自于对内部的参数的更新，这些参数可以是各种判断条件的阈值；同时另一类型的节点可以改变连接结构，表现出行为树的<strong>多态</strong>，即经历了某些事件之后相同的输入会产生不同的输出，这是具备足够的意义的。</p>
 
       
     </div>
@@ -345,7 +310,7 @@
     
     <li class="post-copyright-link hidden-xs">
       <strong>本文链接：</strong>
-      <a href="https://qingbot.github.io/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/" title="使用C++实现软光栅" target="_blank" rel="external">https://qingbot.github.io/2022/02/28/使用C++实现光栅化渲染器/</a>
+      <a href="https://qingbot.github.io/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/" title="一种行为树的实现" target="_blank" rel="external">https://qingbot.github.io/2022/03/30/一种AI行为树/</a>
     </li>
     
     <li class="post-copyright-license">
@@ -391,13 +356,9 @@
   
   <ul class="pager pull-left">
     
-    <li class="prev">
-      <a href="/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/" title="从零开发一个脚本语言"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
-    </li>
-    
     
     <li class="next">
-      <a href="/2022/02/27/hello-world/" title="Hello World"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+      <a href="/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/" title="从零开发一个脚本语言"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
     </li>
     
     
