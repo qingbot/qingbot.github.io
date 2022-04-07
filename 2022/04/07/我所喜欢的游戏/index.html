@@ -17,20 +17,20 @@
   <meta http-equiv="window-target" content="_top" />
   
   
-  <title>一种行为树的实现 | Hexo</title>
-  <meta name="description" content="行为树游戏内常用的NPC的控制逻辑，本质上是使用软件工程的方法优化的一堆if-else，所有的非叶子节点负责逻辑判断，最终选中执行逻辑的叶子节点。 从人类本身出发我们想要的AI无疑是在模拟一个人决策的过程，我认为一个人思考应当遵循以下过程：  决策需要来自外界的输入，我们的感觉，触觉，视觉，听觉，味觉，这些都是接受输入的方式，但人类还包含自我思考产生的自我驱动。 决策需要经验的积累与自身的特征思考">
+  <title>我所喜欢的游戏 | Hexo</title>
+  <meta name="description" content="我所喜欢的游戏 之前敖厂长做过一期视频，是一个很久之前的赛车游戏，他找到了一个玩家的私服，由于游戏早已被忘记，这服务器里面一个人都没有，他在里面横冲直撞向我们介绍这个游戏的各种机制，阐述这个游戏的辉煌以突出现在的没落，正当开的尽兴时，突然大街上直接刷新出来了NPC，同时一辆非常特别的车紧紧的跟在他的后面，是另一个玩家，那个玩家在聊天频道疯狂打字，难耐心中的激动。我能想象到这种感觉，一个你早已觉得不">
 <meta property="og:type" content="article">
-<meta property="og:title" content="一种行为树的实现">
-<meta property="og:url" content="https://qingbot.github.io/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/index.html">
+<meta property="og:title" content="我所喜欢的游戏">
+<meta property="og:url" content="https://qingbot.github.io/2022/04/07/%E6%88%91%E6%89%80%E5%96%9C%E6%AC%A2%E7%9A%84%E6%B8%B8%E6%88%8F/index.html">
 <meta property="og:site_name" content="qingbot">
-<meta property="og:description" content="行为树游戏内常用的NPC的控制逻辑，本质上是使用软件工程的方法优化的一堆if-else，所有的非叶子节点负责逻辑判断，最终选中执行逻辑的叶子节点。 从人类本身出发我们想要的AI无疑是在模拟一个人决策的过程，我认为一个人思考应当遵循以下过程：  决策需要来自外界的输入，我们的感觉，触觉，视觉，听觉，味觉，这些都是接受输入的方式，但人类还包含自我思考产生的自我驱动。 决策需要经验的积累与自身的特征思考">
+<meta property="og:description" content="我所喜欢的游戏 之前敖厂长做过一期视频，是一个很久之前的赛车游戏，他找到了一个玩家的私服，由于游戏早已被忘记，这服务器里面一个人都没有，他在里面横冲直撞向我们介绍这个游戏的各种机制，阐述这个游戏的辉煌以突出现在的没落，正当开的尽兴时，突然大街上直接刷新出来了NPC，同时一辆非常特别的车紧紧的跟在他的后面，是另一个玩家，那个玩家在聊天频道疯狂打字，难耐心中的激动。我能想象到这种感觉，一个你早已觉得不">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2022-03-30T13:16:45.081Z">
-<meta property="article:modified_time" content="2022-04-06T14:23:37.304Z">
+<meta property="article:published_time" content="2022-04-07T09:42:02.257Z">
+<meta property="article:modified_time" content="2022-04-07T09:41:05.330Z">
 <meta property="article:author" content="qingbot@foxmail.com">
 <meta name="twitter:card" content="summary">
   <!-- Canonical links -->
-  <link rel="canonical" href="https://qingbot.github.io/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/index.html">
+  <link rel="canonical" href="https://qingbot.github.io/2022/04/07/%E6%88%91%E6%89%80%E5%96%9C%E6%AC%A2%E7%9A%84%E6%B8%B8%E6%88%8F/index.html">
   
     <link rel="alternate" href="/atom.xml" title="qingbot" type="application/atom+xml">
   
@@ -262,14 +262,14 @@
   
 <main class="main" role="main">
   <div class="content">
-  <article id="post-一种AI行为树" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+  <article id="post-我所喜欢的游戏" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
     
     <div class="article-header">
       
         
   
     <h1 class="article-title" itemprop="name">
-      一种行为树的实现
+      我所喜欢的游戏
     </h1>
   
 
@@ -277,8 +277,8 @@
       <div class="article-meta">
         <span class="article-date">
     <i class="icon icon-calendar-check"></i>
-	<a href="/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/" class="article-date">
-	  <time datetime="2022-03-30T13:16:45.081Z" itemprop="datePublished">2022-03-30</time>
+	<a href="/2022/04/07/%E6%88%91%E6%89%80%E5%96%9C%E6%AC%A2%E7%9A%84%E6%B8%B8%E6%88%8F/" class="article-date">
+	  <time datetime="2022-04-07T09:42:02.257Z" itemprop="datePublished">2022-04-07</time>
 	</a>
 </span>
         
@@ -293,34 +293,36 @@
 	</span>
 
 
-        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/#comments" class="article-comment-link">评论</a></span>
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2022/04/07/%E6%88%91%E6%89%80%E5%96%9C%E6%AC%A2%E7%9A%84%E6%B8%B8%E6%88%8F/#comments" class="article-comment-link">评论</a></span>
         
       </div>
     </div>
     <div class="article-entry marked-body" itemprop="articleBody">
       
-        <h2 id="行为树"><a href="#行为树" class="headerlink" title="行为树"></a>行为树</h2><p>游戏内常用的NPC的控制逻辑，本质上是使用软件工程的方法优化的一堆if-else，所有的非叶子节点负责逻辑判断，最终选中执行逻辑的叶子节点。</p>
-<h2 id="从人类本身出发"><a href="#从人类本身出发" class="headerlink" title="从人类本身出发"></a>从人类本身出发</h2><p>我们想要的AI无疑是在模拟一个人决策的过程，我认为一个人思考应当遵循以下过程：</p>
-<ul>
-<li>决策需要来自外界的输入，我们的感觉，触觉，视觉，听觉，味觉，这些都是接受输入的方式，但人类还包含自我思考产生的自我驱动。</li>
-<li>决策需要经验的积累与自身的特征思考方式。</li>
-<li>决策之后应当专注于当前的决策，但不应该停止处理外界的信息。</li>
-<li>决策会受到外界中断而随时改变，即使一个决策正在执行。</li>
-</ul>
-<p>因为外界的输入而改变，因自己的状态而自我修正，因行为结果的好坏而自我改变，一旦决定就坚决执行。</p>
-<h2 id="软件工程实现"><a href="#软件工程实现" class="headerlink" title="软件工程实现"></a>软件工程实现</h2><p>基于以上考虑，事件-Tick混合的行为树将是我们需要的。</p>
-<p>我们的感，触，视，听，味将由事件触发，对应在游戏内就是诸如碰撞事件之类的外部事件，而自我运行时审查将由Tick完成，它将评估自己正在进行的行为是否依然符合自己的预期。</p>
-<p>思考本身就是行为树选择一条路径的过程，人与人之间的思维差异也应当来自于因成长过程的区别而导致的路径选择的差异，也就是自身经验积累的不同；对此我们将设计一个特殊的行为树逻辑节点，此节点会根据历史，自我更新，当然这个节点其实反游戏的，因为游戏内NPC的逻辑当然需要严格根据策划的需求执行，自我更新将产生不确定性，为了避免这一点，自我更新的方向应当遵循一条固定逻辑，对于这个节点下文会细说。</p>
-<p>决策应当专注而不是随时改变，这其实是一条前提，我们认为NPC应该专注，因此我们可以根据此前提而优化我们的行为树，使之Tick的性能消耗降低。</p>
-<p>为了保证专注于一条决策时性能消耗可以降低又不会错过自我决策，行为树将采取<strong>信号量积累以及优先级事件</strong>。当一个节点被专注执行时，Tick将被将为最低只对保留评估当前决策的合法性，以及接受外部事件，但是外部事件并不会直接介入行为树，而是积累对应事件的信号量，当信号量积累到超过正在执行的事件的优先级，此时会立刻发起事件<strong>中断信号</strong>，行为树进入中断Tick模式，非叶子节点会记住自己拥有的全部叶子节点的信号量感兴趣程度的<strong>最小值</strong>，如果该节点的所有叶子节点都对此事件的信号量不足够感兴趣，则该节点不会执行以达到<strong>剪枝</strong>的效果。对于优先级事件，其存在也是为了<strong>配合剪枝</strong>，潜入类游戏一个NPC正常会处于警戒模式，此时出现了一个噪音则其会走过去检查，但此时玩家开了一枪就会立刻触发战斗，如果反过来，NPC正处于战斗则噪音事件会被直接无视掉，因为噪音事件的优先级低于战斗。<strong>信号量加优先级事件</strong>其实是一种<strong>行为树和状态机的混合</strong>类型，使用了行为树的树状结构来<strong>自我决策</strong>，使用状态机的状态转移实现节点之间的<strong>直接切换</strong>，后者是为了剪枝。</p>
-<h3 id="特殊的逻辑节点"><a href="#特殊的逻辑节点" class="headerlink" title="特殊的逻辑节点"></a>特殊的逻辑节点</h3><p>以上的行为树设计在于对行为树的理解方式：</p>
-<ul>
-<li><p>玩家是游戏内唯一的变量，唯一对整体有影响的不确定性因素</p>
-</li>
-<li><p>行为树不应该只是对固定逻辑的软件工程优化，而应该具备在固定逻辑下拥有一定的不确定性，当然这个不确定性是对用户而言的而不是对策划，这一能力使用行为树的多态实现</p>
-</li>
-</ul>
-<p>该节点有不同的类型，但都符合一个主题，自我更新，对于大多数游戏，游戏内的唯一变量唯一不确定性因素是玩家，因此针对在行为上具备一定惯性的玩家，行为树会改变自身包括但不限于连接结构、条件阈值、节点替换…，表现出行为树的<strong>多态</strong>，即经历了某些事件之后相同的输入会产生不同的输出，这是具备足够的意义的。</p>
+        <p>我所喜欢的游戏</p>
+<p>之前敖厂长做过一期视频，是一个很久之前的赛车游戏，他找到了一个玩家的私服，由于游戏早已被忘记，这服务器里面一个人都没有，他在里面横冲直撞向我们介绍这个游戏的各种机制，阐述这个游戏的辉煌以突出现在的没落，正当开的尽兴时，突然大街上直接刷新出来了NPC，同时一辆非常特别的车紧紧的跟在他的后面，是另一个玩家，那个玩家在聊天频道疯狂打字，难耐心中的激动。我能想象到这种感觉，一个你早已觉得不可能再出现第二个玩家的服务器，突然出现了其他人。</p>
+<p>我觉得这种喜悦<strong>并不是</strong>类似于</p>
+<blockquote>
+<p>你在长久的孤独里终于等来了那一个人的喜悦，长久的精神渴望被满足</p>
+</blockquote>
+<p>而是一种，这世界上还有另一个人，他跟你有相同的深层次喜好，这种喜好并不是简单的为了快乐，为了多巴胺，而是一种类似于精神归属，哪怕世界上只剩下你这一个玩家了，你也坚持维护服务器，哪怕这一过程还会带给你痛苦，但你也一直坚持，就像那些坚持着古老手艺的人，即使现代科技的产物已经在各个方面占优，这份坚持带来的是毫无竞争力的产品以及导致你家境贫寒，但这是一种执念。</p>
+<p>有相同执念的人遇到了一起，那份感觉是非常棒的。</p>
+<p>对这份喜悦通用化我觉得是这样的</p>
+<blockquote>
+<p>那是一种执念，你坚定的认为走下去没有错，最终证明你是对的，且你得到了奖励</p>
+</blockquote>
+<p>敖厂长就是那个玩家得到的奖励。</p>
+<p>风之旅人是一个非常棒的游戏，游戏的设计围绕着玩家的情绪曲线，游戏主动控制玩家的情绪曲线，时而进入低谷，时而拉上顶峰，最有趣的是低谷，此时游戏的节奏会变得缓慢，无边无际的荒凉与空旷，行走都变艰难，重点就在于这个艰难的行走，它极大的限制了玩家活动的欲望，使得玩家从内心深处自发的不想要探索，这才是关键，玩家内心的情绪被调动且与游戏节奏完成了同步，环境的贫瘠与行走的艰难一步步的蚕食掉玩家内心深处多余的想法，逐步把<strong>前进</strong>这一任务目标刻蚀在玩家内心深处，成了一种执念，最终当玩家走出去的时候压抑的内心被释放，此时哪怕只是一些平时不会让你惊喜的场景也会变成一种喜悦，*”看，这是没错的，我走出去了，前面那个宫殿就是我的奖励”*</p>
+<hr>
+<p>现在的游戏是越玩越累，关掉游戏之后，就很难再有兴趣打开。我感觉很大程度上是因为这些游戏没有考虑到我在玩的时候的情绪，一部电影若满是各种高超的摄影技巧，大牌的明星，可完全不考虑用户的情绪，那么当我吃完泡面关了它，可就很难再有兴趣打开继续看完了。</p>
+<p>当我打开GTA5是因为我累了，想在里面无视法律的自由驰骋，自由杀戮。</p>
+<p>当我打开荒野大镖客是因为我感到受到机械的喧嚣，我想去看看蓝天白云青草。</p>
+<p>当我打开鬼泣是因为我想飙一下肾上腺素，那些华丽的招式能够刺激到我，我觉得发出帅气招式的主角就是我。</p>
+<p>我们是人，游戏是人吃饱了之后产生的需求，是心理上的需求，我们为什么要花几万块钱冲进steam里而不是买个充气娃娃呢，游戏会给予我们更丰富的情感上的需求，游戏可以让你喜怒哀乐。鬼泣若只有砍砍砍，GTA若只有杀杀杀，那我还真的不如去买个充气娃娃。</p>
+<p>游戏工业化就有可能一步步偏离玩家的情感，当一个游戏满地图问号，那我玩它图啥，最多就看个故事。育碧就是这样，玩之无味，弃之可惜。</p>
+<p>Rstar使用了最强的体积雾，以及植被渲染带给了我们一个足以让我们沉浸的世界，我们可以在里面感受到现实世界中缺失的那一部分感受。</p>
+<p>卡普空的动作设计从玩家感受出发，就是为了让你感受到这一系列动作的帅气，让你成为自己幻想中的那个英雄。</p>
+<p><em>把玩家当个人，有感情的人，以感受到一些东西为目的游玩游戏。</em></p>
 
       
     </div>
@@ -330,7 +332,7 @@
     
     <li class="post-copyright-link hidden-xs">
       <strong>本文链接：</strong>
-      <a href="https://qingbot.github.io/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/" title="一种行为树的实现" target="_blank" rel="external">https://qingbot.github.io/2022/03/30/一种AI行为树/</a>
+      <a href="https://qingbot.github.io/2022/04/07/%E6%88%91%E6%89%80%E5%96%9C%E6%AC%A2%E7%9A%84%E6%B8%B8%E6%88%8F/" title="我所喜欢的游戏" target="_blank" rel="external">https://qingbot.github.io/2022/04/07/我所喜欢的游戏/</a>
     </li>
     
     <li class="post-copyright-license">
@@ -376,13 +378,9 @@
   
   <ul class="pager pull-left">
     
-    <li class="prev">
-      <a href="/2022/04/07/%E6%88%91%E6%89%80%E5%96%9C%E6%AC%A2%E7%9A%84%E6%B8%B8%E6%88%8F/" title="我所喜欢的游戏"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
-    </li>
-    
     
     <li class="next">
-      <a href="/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/" title="从零开发一个脚本语言"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+      <a href="/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/" title="一种行为树的实现"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
     </li>
     
     
