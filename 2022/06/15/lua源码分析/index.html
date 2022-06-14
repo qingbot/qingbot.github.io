@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>Lua 源码学习 | Hexo</title>
+  <meta name="description" content="LuaLua主线程的状态：global_State 里面包含了一系列底层函数，包括内存释放函数，内存使用量计数，GC状态，GC托管堆，以及一些具有唯一性的数值。 每一个正在运行的lua线程具备一个lua_State块。 里面包含了：当前正在调用的函数信息，代码栈的指针，异常跳转点， 数据lua的数据由一个union保存： 123456789101112typedef union Value &amp;#1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lua 源码学习">
+<meta property="og:url" content="https://qingbot.github.io/2022/06/15/lua%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="qingbot">
+<meta property="og:description" content="LuaLua主线程的状态：global_State 里面包含了一系列底层函数，包括内存释放函数，内存使用量计数，GC状态，GC托管堆，以及一些具有唯一性的数值。 每一个正在运行的lua线程具备一个lua_State块。 里面包含了：当前正在调用的函数信息，代码栈的指针，异常跳转点， 数据lua的数据由一个union保存： 123456789101112typedef union Value &amp;#1">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-06-14T16:02:39.085Z">
+<meta property="article:modified_time" content="2022-06-14T16:03:57.679Z">
+<meta property="article:author" content="qingbot@foxmail.com">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://qingbot.github.io/2022/06/15/lua%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="qingbot" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 5.4.1"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/qingbot" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">qingbot</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">骄傲的游戏开发者，qingbot@foxmail.com</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> guangzhou, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/qingbot" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+
+    
+      
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">六月 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/04/">四月 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">三月 2022</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">二月 2022</a><span class="archive-list-count">2</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2022/06/15/lua%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="title">Lua 源码学习</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-06-14T16:02:39.085Z" itemprop="datePublished">2022-06-15</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2022/04/07/%E6%88%91%E6%89%80%E5%96%9C%E6%AC%A2%E7%9A%84%E6%B8%B8%E6%88%8F/" class="title">我所喜欢的游戏</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-04-07T09:42:02.257Z" itemprop="datePublished">2022-04-07</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2022/03/30/%E4%B8%80%E7%A7%8DAI%E8%A1%8C%E4%B8%BA%E6%A0%91/" class="title">一种行为树的实现</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-03-30T13:16:45.081Z" itemprop="datePublished">2022-03-30</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2022/03/23/%E5%8A%A8%E6%80%81%E8%AF%AD%E8%A8%80/" class="title">从零开发一个脚本语言</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-03-22T16:26:44.378Z" itemprop="datePublished">2022-03-23</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2022/02/28/%E4%BD%BF%E7%94%A8C++%E5%AE%9E%E7%8E%B0%E5%85%89%E6%A0%85%E5%8C%96%E6%B8%B2%E6%9F%93%E5%99%A8/" class="title">使用C++实现软光栅</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-02-28T13:31:30.398Z" itemprop="datePublished">2022-02-28</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-lua源码分析" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Lua 源码学习
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2022/06/15/lua%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="article-date">
+	  <time datetime="2022-06-14T16:02:39.085Z" itemprop="datePublished">2022-06-15</time>
+	</a>
+</span>
+        
+        
+
+        
+	<span class="article-read hidden-xs">
+	    <i class="icon icon-eye-fill" aria-hidden="true"></i>
+	    <span id="busuanzi_container_page_pv">
+			<span id="busuanzi_value_page_pv">0</span>
+		</span>
+	</span>
+
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2022/06/15/lua%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h1 id="Lua"><a href="#Lua" class="headerlink" title="Lua"></a>Lua</h1><p>Lua主线程的状态：global_State</p>
+<p>里面包含了一系列底层函数，包括内存释放函数，内存使用量计数，GC状态，GC托管堆，以及一些具有唯一性的数值。</p>
+<p>每一个正在运行的lua线程具备一个lua_State块。</p>
+<p>里面包含了：当前正在调用的函数信息，代码栈的指针，异常跳转点，</p>
+<h3 id="数据"><a href="#数据" class="headerlink" title="数据"></a>数据</h3><p>lua的数据由一个union保存：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">union</span> <span class="title">Value</span> &#123;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">GCObject</span> *<span class="title">gc</span>;</span>    <span class="comment">/* collectable objects */</span></span><br><span class="line">  <span class="type">void</span> *p;         <span class="comment">/* light userdata */</span></span><br><span class="line">  lua_CFunction f; <span class="comment">/* light C functions */</span></span><br><span class="line">  lua_Integer i;   <span class="comment">/* integer numbers */</span></span><br><span class="line">  lua_Number n;    <span class="comment">/* float numbers */</span></span><br><span class="line">&#125; Value;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">TValue</span> &#123;</span></span><br><span class="line">  Value value_; </span><br><span class="line"> lu_byte tt_;</span><br><span class="line">&#125; TValue</span><br></pre></td></tr></table></figure>
+
+<p>TValue组成了一个基础数据，value_是其中保存的数据，tt_是该数据的类型</p>
+<h4 id="string"><a href="#string" class="headerlink" title="string"></a>string</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">TString</span> &#123;</span></span><br><span class="line">  CommonHeader;</span><br><span class="line">  lu_byte extra;  <span class="comment">/* reserved words for short strings; &quot;has hash&quot; for longs */</span></span><br><span class="line">  lu_byte shrlen;  <span class="comment">/* length for short strings */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> hash;</span><br><span class="line">  <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">    <span class="type">size_t</span> lnglen;  <span class="comment">/* length for long strings */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">TString</span> *<span class="title">hnext</span>;</span>  <span class="comment">/* linked list for hash table */</span></span><br><span class="line">  &#125; u;</span><br><span class="line">  <span class="type">char</span> contents[<span class="number">1</span>];</span><br><span class="line">&#125; TString;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>lua 的string的采样的是slab算法。所有的字符值都存储在global_state里面，每一个用户使用的字符仅仅存储一个对应的hash值。</p>
+<h4 id="Proto"><a href="#Proto" class="headerlink" title="Proto"></a>Proto</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">Proto</span> &#123;</span></span><br><span class="line">  CommonHeader;</span><br><span class="line">  lu_byte numparams;  <span class="comment">/* number of fixed (named) parameters */</span></span><br><span class="line">  lu_byte is_vararg;</span><br><span class="line">  lu_byte maxstacksize;  <span class="comment">/* number of registers needed by this function */</span></span><br><span class="line">  <span class="type">int</span> sizeupvalues;  <span class="comment">/* size of &#x27;upvalues&#x27; */</span></span><br><span class="line">  <span class="type">int</span> sizek;  <span class="comment">/* size of &#x27;k&#x27; */</span></span><br><span class="line">  <span class="type">int</span> sizecode;</span><br><span class="line">  <span class="type">int</span> sizelineinfo;</span><br><span class="line">  <span class="type">int</span> sizep;  <span class="comment">/* size of &#x27;p&#x27; */</span></span><br><span class="line">  <span class="type">int</span> sizelocvars;</span><br><span class="line">  <span class="type">int</span> sizeabslineinfo;  <span class="comment">/* size of &#x27;abslineinfo&#x27; */</span></span><br><span class="line">  <span class="type">int</span> linedefined;  <span class="comment">/* debug information  */</span></span><br><span class="line">  <span class="type">int</span> lastlinedefined;  <span class="comment">/* debug information  */</span></span><br><span class="line">  TValue *k;  <span class="comment">/* constants used by the function */</span></span><br><span class="line">  Instruction *code;  <span class="comment">/* opcodes */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">Proto</span> **<span class="title">p</span>;</span>  <span class="comment">/* functions defined inside the function */</span></span><br><span class="line">  Upvaldesc *upvalues;  <span class="comment">/* upvalue information */</span></span><br><span class="line">  ls_byte *lineinfo;  <span class="comment">/* information about source lines (debug information) */</span></span><br><span class="line">  AbsLineInfo *abslineinfo;  <span class="comment">/* idem */</span></span><br><span class="line">  LocVar *locvars;  <span class="comment">/* information about local variables (debug information) */</span></span><br><span class="line">  TString  *source;  <span class="comment">/* used for debug information */</span></span><br><span class="line">  GCObject *gclist;</span><br><span class="line">&#125; Proto;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>函数原型里面包括了一个函数的字节码，upvalues，常量表，栈信息。。。。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">UpVal</span> &#123;</span></span><br><span class="line">  CommonHeader;</span><br><span class="line">  lu_byte tbc;  <span class="comment">/* true if it represents a to-be-closed variable */</span></span><br><span class="line">  TValue *v;  <span class="comment">/* points to stack or to its own value */</span></span><br><span class="line">  <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> &#123;</span>  <span class="comment">/* (when open) */</span></span><br><span class="line">      <span class="class"><span class="keyword">struct</span> <span class="title">UpVal</span> *<span class="title">next</span>;</span>  <span class="comment">/* linked list */</span></span><br><span class="line">      <span class="class"><span class="keyword">struct</span> <span class="title">UpVal</span> **<span class="title">previous</span>;</span></span><br><span class="line">    &#125; open;</span><br><span class="line">    TValue value;  <span class="comment">/* the value (when closed) */</span></span><br><span class="line">  &#125; u;</span><br><span class="line">&#125; UpVal;</span><br></pre></td></tr></table></figure>
+
+<p>upvalue保存了目标的数值。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">** Insert a variable in the list of to-be-closed variables.</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">luaF_newtbcupval</span> <span class="params">(lua_State *L, StkId level)</span> &#123;</span><br><span class="line">  lua_assert(level &gt; L-&gt;tbclist);</span><br><span class="line">  <span class="keyword">if</span> (l_isfalse(s2v(level)))</span><br><span class="line">    <span class="keyword">return</span>;  <span class="comment">/* false doesn&#x27;t need to be closed */</span></span><br><span class="line">  checkclosemth(L, level);  <span class="comment">/* value must have a close method */</span></span><br><span class="line">  <span class="keyword">while</span> (cast_uint(level - L-&gt;tbclist) &gt; MAXDELTA) &#123;</span><br><span class="line">    L-&gt;tbclist += MAXDELTA;  <span class="comment">/* create a dummy node at maximum delta */</span></span><br><span class="line">    L-&gt;tbclist-&gt;tbclist.delta = <span class="number">0</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  level-&gt;tbclist.delta = cast(<span class="type">unsigned</span> <span class="type">short</span>, level - L-&gt;tbclist);</span><br><span class="line">  L-&gt;tbclist = level;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="闭包"><a href="#闭包" class="headerlink" title="闭包"></a>闭包</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> ClosureHeader \</span></span><br><span class="line"><span class="meta">	CommonHeader; lu_byte nupvalues; GCObject *gclist</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">CClosure</span> &#123;</span></span><br><span class="line">  ClosureHeader;</span><br><span class="line">  lua_CFunction f;</span><br><span class="line">  TValue upvalue[<span class="number">1</span>];  <span class="comment">/* list of upvalues */</span></span><br><span class="line">&#125; CClosure;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">LClosure</span> &#123;</span></span><br><span class="line">  ClosureHeader;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">Proto</span> *<span class="title">p</span>;</span></span><br><span class="line">  UpVal *upvals[<span class="number">1</span>];  <span class="comment">/* list of upvalues */</span></span><br><span class="line">&#125; LClosure;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">union</span> <span class="title">Closure</span> &#123;</span></span><br><span class="line">  CClosure c;</span><br><span class="line">  LClosure l;</span><br><span class="line">&#125; Closure;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>lua的闭包有以上两种，C函数的闭包，和lua函数闭包。</p>
+<p>创建lua闭包的过程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">LClosure *<span class="title function_">luaF_newLclosure</span> <span class="params">(lua_State *L, <span class="type">int</span> nupvals)</span> &#123;</span><br><span class="line">  GCObject *o = luaC_newobj(L, LUA_VLCL, sizeLclosure(nupvals));</span><br><span class="line">  LClosure *c = gco2lcl(o);</span><br><span class="line">  c-&gt;p = <span class="literal">NULL</span>;</span><br><span class="line">  c-&gt;nupvalues = cast_byte(nupvals);</span><br><span class="line">  <span class="keyword">while</span> (nupvals--) c-&gt;upvals[nupvals] = <span class="literal">NULL</span>;</span><br><span class="line">  <span class="keyword">return</span> c;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//以上初始化 仅仅相当于一个构造函数</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">pushclosure</span> <span class="params">(lua_State *L, Proto *p, UpVal **encup, StkId base,</span></span><br><span class="line"><span class="params">                         StkId ra)</span> &#123;</span><br><span class="line">  <span class="type">int</span> nup = p-&gt;sizeupvalues;</span><br><span class="line">  Upvaldesc *uv = p-&gt;upvalues;</span><br><span class="line">  <span class="type">int</span> i;</span><br><span class="line">  LClosure *ncl = luaF_newLclosure(L, nup);</span><br><span class="line">  ncl-&gt;p = p;</span><br><span class="line">  setclLvalue2s(L, ra, ncl);  <span class="comment">/* anchor new closure in stack */</span></span><br><span class="line">  <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; nup; i++) &#123;  <span class="comment">/* fill in its upvalues */</span></span><br><span class="line">    <span class="keyword">if</span> (uv[i].instack)  <span class="comment">/* upvalue refers to local variable? */</span></span><br><span class="line">      ncl-&gt;upvals[i] = luaF_findupval(L, base + uv[i].idx);</span><br><span class="line">    <span class="keyword">else</span>  <span class="comment">/* get upvalue from enclosing function */</span></span><br><span class="line">      ncl-&gt;upvals[i] = encup[uv[i].idx];</span><br><span class="line">    luaC_objbarrier(L, ncl, ncl-&gt;upvals[i]);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先初始化一个空closure，然后将其压入栈，然后寻找对应upval的值并保存下来。寻找对应数值的过程使用的是地址。lua在编译器将变量替换为地址，如果当前已经在一个函数内部，那么内层函数只需要从外部嵌套的函数的upvalue复制出来自己需要的即可，否则luaF_findupval函数从lua_state里面的openupval里面一一对比地址寻找目标变量。如果没找到的话，那么就新建一个并将其链到openupval里面。接下来就可以复用此upvalue.</p>
+<p>创建c函数闭包就相对较为简单，其实就是将需要的变量从栈中取出存入upvalue。</p>
+<h3 id="CallInfo"><a href="#CallInfo" class="headerlink" title="CallInfo"></a>CallInfo</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">CallInfo</span> &#123;</span></span><br><span class="line">  StkId func;  <span class="comment">/* function index in the stack */</span></span><br><span class="line">  StkId	top;  <span class="comment">/* top for this function */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">CallInfo</span> *<span class="title">previous</span>, *<span class="title">next</span>;</span>  <span class="comment">/* dynamic call link */</span></span><br><span class="line">  <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> &#123;</span>  <span class="comment">/* only for Lua functions */</span></span><br><span class="line">      <span class="type">const</span> Instruction *savedpc;</span><br><span class="line">      <span class="keyword">volatile</span> l_signalT trap;</span><br><span class="line">      <span class="type">int</span> nextraargs;  <span class="comment">/* # of extra arguments in vararg functions */</span></span><br><span class="line">    &#125; l;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> &#123;</span>  <span class="comment">/* only for C functions */</span></span><br><span class="line">      lua_KFunction k;  <span class="comment">/* continuation in case of yields */</span></span><br><span class="line">      <span class="type">ptrdiff_t</span> old_errfunc;</span><br><span class="line">      lua_KContext ctx;  <span class="comment">/* context info. in case of yields */</span></span><br><span class="line">    &#125; c;</span><br><span class="line">  &#125; u;</span><br><span class="line">  <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">    <span class="type">int</span> funcidx;  <span class="comment">/* called-function index */</span></span><br><span class="line">    <span class="type">int</span> nyield;  <span class="comment">/* number of values yielded */</span></span><br><span class="line">    <span class="type">int</span> nres;  <span class="comment">/* number of values returned */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> &#123;</span>  <span class="comment">/* info about transferred values (for call/return hooks) */</span></span><br><span class="line">      <span class="type">unsigned</span> <span class="type">short</span> ftransfer;  <span class="comment">/* offset of first value transferred */</span></span><br><span class="line">      <span class="type">unsigned</span> <span class="type">short</span> ntransfer;  <span class="comment">/* number of values transferred */</span></span><br><span class="line">    &#125; transferinfo;</span><br><span class="line">  &#125; u2;</span><br><span class="line">  <span class="type">short</span> nresults;  <span class="comment">/* expected number of results from this function */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">short</span> callstatus;</span><br><span class="line">&#125; CallInfo;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>callinfo就是一个函数调用的信息。本身是一个双向链表，存储了当前函数的地址，命令。</p>
+<h4 id="寄存器"><a href="#寄存器" class="headerlink" title="寄存器"></a>寄存器</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">i = *(pc++); \</span><br><span class="line">ra = RA(i); <span class="comment">/* WARNING: any stack reallocation invalidates &#x27;ra&#x27; */</span> \</span><br><span class="line">  </span><br><span class="line"><span class="meta">#<span class="keyword">define</span> RA(i)	(base+GETARG_A(i))</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> GETARG_A(i)	getarg(i, POS_A, SIZE_A)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> getarg(i,pos,size)	(cast_int(((i)&gt;&gt;(pos)) &amp; MASK1(size,0)))</span></span><br></pre></td></tr></table></figure>
+
+<p>ra就是一个寄存器，i本身就是一条指令，宏RA是在计算当前寄存器的偏移地址，对于A类寄存器，其位置就在指令i的后几bit位。base本身是当前函数的地址起始位，base+偏移地址就是对应的数据的地址。ra就是指向目标数据的指针。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*===========================================================================</span></span><br><span class="line"><span class="comment">  We assume that instructions are unsigned 32-bit integers.</span></span><br><span class="line"><span class="comment">  All instructions have an opcode in the first 7 bits.</span></span><br><span class="line"><span class="comment">  Instructions can have the following formats:</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">        3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0</span></span><br><span class="line"><span class="comment">        1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0</span></span><br><span class="line"><span class="comment">iABC          C(8)     |      B(8)     |k|     A(8)      |   Op(7)     |</span></span><br><span class="line"><span class="comment">iABx                Bx(17)               |     A(8)      |   Op(7)     |</span></span><br><span class="line"><span class="comment">iAsBx              sBx (signed)(17)      |     A(8)      |   Op(7)     |</span></span><br><span class="line"><span class="comment">iAx                           Ax(25)                     |   Op(7)     |</span></span><br><span class="line"><span class="comment">isJ                           sJ(25)                     |   Op(7)     |</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">  A signed argument is represented in excess K: the represented value is</span></span><br><span class="line"><span class="comment">  the written unsigned value minus K, where K is half the maximum for the</span></span><br><span class="line"><span class="comment">  corresponding unsigned argument.</span></span><br><span class="line"><span class="comment">===========================================================================*/</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>Op表示操作码占7bit</p>
+<p>A,B,C表示寄存器的偏移地址</p>
+<p>sBx表示指令跳转偏移地址</p>
+<p>Bx常量表的偏移地址</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">a = <span class="number">2</span></span><br><span class="line">c = <span class="number">3</span></span><br><span class="line"><span class="built_in">print</span>(c)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">main &lt;123.lua:0,0&gt; (7 instructions at 0116FFB8)</span><br><span class="line">0+ params, 2 slots, 1 upvalue, 0 locals, 5 constants, 0 functions</span><br><span class="line">        1       [1]     VARARGPREP      0</span><br><span class="line">        2       [1]     SETTABUP        0 0 1k  ; _ENV &quot;a&quot; 2</span><br><span class="line">        3       [3]     SETTABUP        0 2 3k  ; _ENV &quot;c&quot; 3</span><br><span class="line">        4       [5]     GETTABUP        0 0 4   ; _ENV &quot;print&quot;</span><br><span class="line">        5       [5]     GETTABUP        1 0 2   ; _ENV &quot;c&quot;</span><br><span class="line">        6       [5]     CALL            0 2 1   ; 1 in 0 out</span><br><span class="line">        7       [5]     RETURN          0 1 1   ; 0 out</span><br><span class="line">constants (5) for 0116FFB8:</span><br><span class="line">        0       S       &quot;a&quot;</span><br><span class="line">        1       I       2</span><br><span class="line">        2       S       &quot;c&quot;</span><br><span class="line">        3       I       3</span><br><span class="line">        4       S       &quot;print&quot;</span><br><span class="line">locals (0) for 0116FFB8:</span><br><span class="line">upvalues (1) for 0116FFB8:</span><br><span class="line">        0       _ENV    1       0</span><br></pre></td></tr></table></figure>
+
+<p>lua的执行是函数 luaV_execute，它会首先创建一个closure和StackValue，然后死循环一条条的读取指令并解析。</p>
+<p>在每一次执行一个指令时都会生命一个寄存器指针。</p>
+<p>lua查找一个变量的过程是指令 <strong>GETTABUP</strong> 其对应的过程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> TValue *slot;</span><br><span class="line">       TValue *upval = cl-&gt;upvals[GETARG_B(i)]-&gt;v;</span><br><span class="line">       TValue *rc = KC(i);</span><br><span class="line">       TString *key = tsvalue(rc);  <span class="comment">/* key must be a string */</span></span><br><span class="line">       <span class="keyword">if</span> (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) &#123;</span><br><span class="line">         setobj2s(L, ra, slot);</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">else</span></span><br><span class="line">         Protect(luaV_finishget(L, upval, rc, ra, slot));</span><br><span class="line">       vmbreak;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码向我们揭示了变量的查询过程，一个函数将从自己的closure里面寻找对应的变量，找到之后将其交至当前函数的StackValue</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">union</span> <span class="title">StackValue</span> &#123;</span></span><br><span class="line">  TValue val;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    TValuefields;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">short</span> delta;</span><br><span class="line">  &#125; tbclist;</span><br><span class="line">&#125; StackValue;</span><br></pre></td></tr></table></figure>
+
+<p>lua在调用一个函数对应CALL指令：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">vmcase(OP_CALL) &#123;</span><br><span class="line">       CallInfo *newci;</span><br><span class="line">       <span class="type">int</span> b = GETARG_B(i);</span><br><span class="line">       <span class="type">int</span> nresults = GETARG_C(i) - <span class="number">1</span>;</span><br><span class="line">       <span class="keyword">if</span> (b != <span class="number">0</span>)  <span class="comment">/* fixed number of arguments? */</span></span><br><span class="line">         L-&gt;top = ra + b;  <span class="comment">/* top signals number of arguments */</span></span><br><span class="line">       <span class="comment">/* else previous instruction set top */</span></span><br><span class="line">       savepc(L);  <span class="comment">/* in case of errors */</span></span><br><span class="line">       <span class="keyword">if</span> ((newci = luaD_precall(L, ra, nresults)) == <span class="literal">NULL</span>)</span><br><span class="line">         updatetrap(ci);  <span class="comment">/* C call; nothing else to be done */</span></span><br><span class="line">       <span class="keyword">else</span> &#123;  <span class="comment">/* Lua call: run function in this same C frame */</span></span><br><span class="line">         ci = newci;</span><br><span class="line">         <span class="keyword">goto</span> startfunc;</span><br><span class="line">       &#125;</span><br><span class="line">       vmbreak;</span><br><span class="line">     &#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果是一个C函数，程序将直接调用此函数。</p>
+<p>如果是一个lua函数，程序将goto startfunc回到解析函数开头，相当于递归了，但是有趣的是，startfunc标记点在声明closure，stackvalue之后，这相当于对递归的优化了。这正好解释了闭包的传递性。</p>
+<h2 id="垃圾回收"><a href="#垃圾回收" class="headerlink" title="垃圾回收"></a>垃圾回收</h2><p>内存申请：luaC_newobj函数向操作系统申请一块指定大小的内存，然后使用GCObject标记这块内存，最后将其挂载到globa_State的内存链条上。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">GCObject *<span class="title function_">luaC_newobj</span> <span class="params">(lua_State *L, <span class="type">int</span> tt, <span class="type">size_t</span> sz)</span> &#123;</span><br><span class="line">  global_State *g = G(L);</span><br><span class="line">  GCObject *o = cast(GCObject *, luaM_newobject(L, novariant(tt), sz));</span><br><span class="line">  o-&gt;marked = luaC_white(g);</span><br><span class="line">  o-&gt;tt = tt;</span><br><span class="line">  o-&gt;next = g-&gt;allgc;</span><br><span class="line">  g-&gt;allgc = o;</span><br><span class="line">  <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>当有大块内存申请时将触发一次垃圾回收检测 checkGC，</p>
+<p>lua会去检测当前global_State的GCdebt如果大于零则开始一次回收</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> luaC_condGC(L,pre,pos) \</span></span><br><span class="line"><span class="meta">	&#123; <span class="keyword">if</span> (G(L)-&gt;GCdebt &gt; 0) &#123; pre; luaC_step(L); pos;&#125;; \</span></span><br><span class="line"><span class="meta">	  condchangemem(L,pre,pos); &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>首先会先保存当初的指令地址，然后执行垃圾回收过程</p>
+<p>lua的垃圾回收包含分代回收(generational)和增量回收(incremental)</p>
+<h4 id="分代回收"><a href="#分代回收" class="headerlink" title="分代回收"></a>分代回收</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">** Does a generational &quot;step&quot;.</span></span><br><span class="line"><span class="comment">** Usually, this means doing a minor collection and setting the debt to</span></span><br><span class="line"><span class="comment">** make another collection when memory grows &#x27;genminormul&#x27;% larger.</span></span><br><span class="line"><span class="comment">**</span></span><br><span class="line"><span class="comment">** However, there are exceptions.  If memory grows &#x27;genmajormul&#x27;%</span></span><br><span class="line"><span class="comment">** larger than it was at the end of the last major collection (kept</span></span><br><span class="line"><span class="comment">** in &#x27;g-&gt;GCestimate&#x27;), the function does a major collection. At the</span></span><br><span class="line"><span class="comment">** end, it checks whether the major collection was able to free a</span></span><br><span class="line"><span class="comment">** decent amount of memory (at least half the growth in memory since</span></span><br><span class="line"><span class="comment">** previous major collection). If so, the collector keeps its state,</span></span><br><span class="line"><span class="comment">** and the next collection will probably be minor again. Otherwise,</span></span><br><span class="line"><span class="comment">** we have what we call a &quot;bad collection&quot;. In that case, set the field</span></span><br><span class="line"><span class="comment">** &#x27;g-&gt;lastatomic&#x27; to signal that fact, so that the next collection will</span></span><br><span class="line"><span class="comment">** go to &#x27;stepgenfull&#x27;.</span></span><br><span class="line"><span class="comment">**</span></span><br><span class="line"><span class="comment">** &#x27;GCdebt &lt;= 0&#x27; means an explicit call to GC step with &quot;size&quot; zero;</span></span><br><span class="line"><span class="comment">** in that case, do a minor collection.</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">genstep</span> <span class="params">(lua_State *L, global_State *g)</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (g-&gt;lastatomic != <span class="number">0</span>)  <span class="comment">/* last collection was a bad one? */</span></span><br><span class="line">    stepgenfull(L, g);  <span class="comment">/* do a full step */</span></span><br><span class="line">  <span class="keyword">else</span> &#123;</span><br><span class="line">    lu_mem majorbase = g-&gt;GCestimate;  <span class="comment">//正在使用的非垃圾内存的估计值</span></span><br><span class="line">    lu_mem majorinc = (majorbase / <span class="number">100</span>) * getgcparam(g-&gt;genmajormul);</span><br><span class="line">    <span class="keyword">if</span> (g-&gt;GCdebt &gt; <span class="number">0</span> &amp;&amp; gettotalbytes(g) &gt; majorbase + majorinc) &#123;	<span class="comment">//总使用字节数大于非垃圾内存的估计值与主要增量的估计值的话</span></span><br><span class="line">      lu_mem numobjs = fullgen(L, g);  <span class="comment">/* do a major collection */</span></span><br><span class="line">      <span class="keyword">if</span> (gettotalbytes(g) &lt; majorbase + (majorinc / <span class="number">2</span>)) &#123;</span><br><span class="line">        <span class="comment">/* collected at least half of memory growth since last major</span></span><br><span class="line"><span class="comment">           collection; keep doing minor collections */</span></span><br><span class="line">        setminordebt(g);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> &#123;  <span class="comment">/* bad collection */</span></span><br><span class="line">        g-&gt;lastatomic = numobjs;  <span class="comment">/* signal that last collection was bad */</span></span><br><span class="line">        setpause(g);  <span class="comment">/* do a long wait for next (major) collection */</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;  <span class="comment">/* regular case; do a minor collection */</span></span><br><span class="line">      youngcollection(L, g);</span><br><span class="line">      setminordebt(g);</span><br><span class="line">      g-&gt;GCestimate = majorbase;  <span class="comment">/* preserve base value */</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  lua_assert(isdecGCmodegen(g));</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>通过注释 我们可以很清晰的理解分代的算法。</p>
+<p>一次普通的垃圾回收被称为minor collection，当内存使用量比上次major collection结束时还大的话，就会进行一次major collection 同时会检测是否回收了足够的内存，至少也得是上次major之后增量的一半都得被回收掉，如果回收的空间不够大，则标记此次回收为bad collection那么下次回收的时候就是一次全量回收。</p>
+<h5 id="minor-collection"><a href="#minor-collection" class="headerlink" title="minor collection"></a>minor collection</h5><ul>
+<li><p>首先标记所有old1类型以及待回收的对象，按照三色标记法标记。</p>
+</li>
+<li><p>回收掉被标记为白色的对象，对于存活的对象，将会为其标记世代：</p>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">const</span> lu_byte nextage[] = &#123;</span><br><span class="line">  G_SURVIVAL,  <span class="comment">/* from G_NEW */</span></span><br><span class="line">  G_OLD1,      <span class="comment">/* from G_SURVIVAL */</span></span><br><span class="line">  G_OLD1,      <span class="comment">/* from G_OLD0 */</span></span><br><span class="line">  G_OLD,       <span class="comment">/* from G_OLD1 */</span></span><br><span class="line">  G_OLD,       <span class="comment">/* from G_OLD (do not change) */</span></span><br><span class="line">  G_TOUCHED1,  <span class="comment">/* from G_TOUCHED1 (do not change) */</span></span><br><span class="line">  G_TOUCHED2   <span class="comment">/* from G_TOUCHED2 (do not change) */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>​    对于G_NEW对象的颜色会被标记为白色。并且进入G_SURVIVAL世代。其他世代的对象会保留其颜色然后进入下一世代。</p>
+<p>​    此过程对每一个世代的对象都会单独执行一次。</p>
+<p>​    世代可以分为：</p>
+<p>​    |–新创建的对象—|——上一次垃圾回收存活—-|——old1——–|</p>
+<p>​    minor collection就只回收前两部分。但是对象被分为自带回收器的对象，以及不带回收器的对象，将会分别执行</p>
+<ul>
+<li>收尾阶段，缩减字符串表，重新计算非垃圾内存的评估值。</li>
+</ul>
+<h4 id="major-collection"><a href="#major-collection" class="headerlink" title="major collection"></a>major collection</h4><p>一次major collection其实就是一次全量的增量回收</p>
+<p>首先会将所有的对象都设置为白色。</p>
+<p>所有的垃圾回收对象都具备一个颜色标记位：</p>
+<ul>
+<li>白色代表该内存尚未被标记</li>
+<li>灰色代表该内存已被标记，但是其引用可能尚未被标记</li>
+<li>黑色代表该内存及其引用已被标记</li>
+</ul>
+<p>在一次垃圾回收开始时所有的对象都会被标记为白色</p>
+<p>**<em>ObjectBarrier</em> **: 创建一个对象时会检测该对象与其对其他变量的引用关系，如果对方是old1世代的变量，那么新变量将会被置于old0，因为对方是黑色节点，下次标记会直接跳过，新对象就难以被标记。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">static</span> <span class="type">void</span> <span class="title">enterinc</span> <span class="params">(global_State *g)</span> </span>&#123;</span><br><span class="line">  <span class="built_in">whitelist</span>(g, g-&gt;allgc);   </span><br><span class="line">  g-&gt;reallyold = g-&gt;old1 = g-&gt;survival = <span class="literal">NULL</span>;</span><br><span class="line">  <span class="built_in">whitelist</span>(g, g-&gt;finobj);  </span><br><span class="line">  <span class="built_in">whitelist</span>(g, g-&gt;tobefnz); </span><br><span class="line">  g-&gt;finobjrold = g-&gt;finobjold1 = g-&gt;finobjsur = <span class="literal">NULL</span>;</span><br><span class="line">  g-&gt;gcstate = GCSpause;</span><br><span class="line">  g-&gt;gckind = KGC_INC;</span><br><span class="line">  g-&gt;lastatomic = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>之后entergen函数开始进行垃圾回收，</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> lu_mem <span class="title function_">entergen</span> <span class="params">(lua_State *L, global_State *g)</span> &#123;</span><br><span class="line">  lu_mem numobjs;</span><br><span class="line">  luaC_runtilstate(L, bitmask(GCSpause));  <span class="comment">/* 简单对象标记为黑色，复杂对象标记为灰色 */</span></span><br><span class="line">  luaC_runtilstate(L, bitmask(GCSpropagate));  <span class="comment">/* start new cycle */</span></span><br><span class="line">  numobjs = atomic(L);  <span class="comment">/* propagates all and then do the atomic stuff */</span></span><br><span class="line">  atomic2gen(L, g);</span><br><span class="line">  <span class="keyword">return</span> numobjs;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>luaC_runtilstate将调用singlestep，后者是垃圾回收的状态机，它将垃圾回收换分为不同的状态，分步完成。</p>
+<h4 id="增量回收"><a href="#增量回收" class="headerlink" title="增量回收"></a>增量回收</h4><p>Lua的增量回收分成了多个步骤完成。主要由函数  static lu_mem singlestep (lua_State *L) 实现。</p>
+<ul>
+<li>GCPause：标记根节点对象</li>
+<li>GCSpropagate：将一个灰色对象转换为黑色对象</li>
+<li>GCSenteratomic：这一步是标记阶段的收尾，并且开始按标记回收内存</li>
+<li>GCSswpallgc，GCSswpfinobj，GCSswptobefnz：就是对不同的内存进行回收</li>
+<li>GCSswpend：回收字符串</li>
+</ul>
+<hr>
+<h2 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h2><p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kekec/p/11768935.html">深入理解Lua虚拟机</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.codingnow.com/download/readinglua.pdf">Lua源码欣赏</a></p>
+<p><a target="_blank" rel="noopener" href="https://the-ravi-programming-language.readthedocs.io/en/latest/lua_bytecode_reference.html">Lua 5.3 Bytecode Refrence</a></p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://qingbot.github.io/2022/06/15/lua%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" title="Lua 源码学习" target="_blank" rel="external">https://qingbot.github.io/2022/06/15/lua源码分析/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/qingbot" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/qingbot" target="_blank"><span class="text-dark">qingbot</span><small class="ml-1x">骄傲的游戏开发者，qingbot@foxmail.com</small></a></h3>
+        <div>这孩子从小就想做游戏</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    
+    <li class="next">
+      <a href="/2022/04/07/%E6%88%91%E6%89%80%E5%96%9C%E6%AC%A2%E7%9A%84%E6%B8%B8%E6%88%8F/" title="我所喜欢的游戏"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/qingbot" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>
