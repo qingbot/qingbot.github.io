@@ -26,7 +26,7 @@
 <meta property="og:description" content="LuaLua主线程的状态：global_State 里面包含了一系列底层函数，包括内存释放函数，内存使用量计数，GC状态，GC托管堆，以及一些具有唯一性的数值。 每一个正在运行的lua线程具备一个lua_State块。 里面包含了：当前正在调用的函数信息，代码栈的指针，异常跳转点， 数据lua的数据由一个union保存： 123456789101112typedef union Value &amp;#1">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-06-14T16:02:39.085Z">
-<meta property="article:modified_time" content="2022-06-14T16:03:57.679Z">
+<meta property="article:modified_time" content="2022-06-14T16:57:18.069Z">
 <meta property="article:author" content="qingbot@foxmail.com">
 <meta name="twitter:card" content="summary">
   <!-- Canonical links -->
@@ -358,13 +358,19 @@
 <h2 id="垃圾回收"><a href="#垃圾回收" class="headerlink" title="垃圾回收"></a>垃圾回收</h2><p>内存申请：luaC_newobj函数向操作系统申请一块指定大小的内存，然后使用GCObject标记这块内存，最后将其挂载到globa_State的内存链条上。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">GCObject *<span class="title function_">luaC_newobj</span> <span class="params">(lua_State *L, <span class="type">int</span> tt, <span class="type">size_t</span> sz)</span> &#123;</span><br><span class="line">  global_State *g = G(L);</span><br><span class="line">  GCObject *o = cast(GCObject *, luaM_newobject(L, novariant(tt), sz));</span><br><span class="line">  o-&gt;marked = luaC_white(g);</span><br><span class="line">  o-&gt;tt = tt;</span><br><span class="line">  o-&gt;next = g-&gt;allgc;</span><br><span class="line">  g-&gt;allgc = o;</span><br><span class="line">  <span class="keyword">return</span> o;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-
-
+<p>对于LuaM_newObject每次申请内存时会将内存大小加到 g-&gt;GCdebt.</p>
 <p>当有大块内存申请时将触发一次垃圾回收检测 checkGC，</p>
 <p>lua会去检测当前global_State的GCdebt如果大于零则开始一次回收</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> luaC_condGC(L,pre,pos) \</span></span><br><span class="line"><span class="meta">	&#123; <span class="keyword">if</span> (G(L)-&gt;GCdebt &gt; 0) &#123; pre; luaC_step(L); pos;&#125;; \</span></span><br><span class="line"><span class="meta">	  condchangemem(L,pre,pos); &#125;</span></span><br></pre></td></tr></table></figure>
 
 <p>首先会先保存当初的指令地址，然后执行垃圾回收过程</p>
+<p>所有的垃圾回收对象都具备一个颜色标记位：</p>
+<ul>
+<li>白色代表该内存尚未被标记</li>
+<li>灰色代表该内存已被标记，但是其引用可能尚未被标记</li>
+<li>黑色代表该内存及其引用已被标记</li>
+</ul>
+<p>在一次垃圾回收开始时所有的对象都会被标记为白色</p>
 <p>lua的垃圾回收包含分代回收(generational)和增量回收(incremental)</p>
 <h4 id="分代回收"><a href="#分代回收" class="headerlink" title="分代回收"></a>分代回收</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">** Does a generational &quot;step&quot;.</span></span><br><span class="line"><span class="comment">** Usually, this means doing a minor collection and setting the debt to</span></span><br><span class="line"><span class="comment">** make another collection when memory grows &#x27;genminormul&#x27;% larger.</span></span><br><span class="line"><span class="comment">**</span></span><br><span class="line"><span class="comment">** However, there are exceptions.  If memory grows &#x27;genmajormul&#x27;%</span></span><br><span class="line"><span class="comment">** larger than it was at the end of the last major collection (kept</span></span><br><span class="line"><span class="comment">** in &#x27;g-&gt;GCestimate&#x27;), the function does a major collection. At the</span></span><br><span class="line"><span class="comment">** end, it checks whether the major collection was able to free a</span></span><br><span class="line"><span class="comment">** decent amount of memory (at least half the growth in memory since</span></span><br><span class="line"><span class="comment">** previous major collection). If so, the collector keeps its state,</span></span><br><span class="line"><span class="comment">** and the next collection will probably be minor again. Otherwise,</span></span><br><span class="line"><span class="comment">** we have what we call a &quot;bad collection&quot;. In that case, set the field</span></span><br><span class="line"><span class="comment">** &#x27;g-&gt;lastatomic&#x27; to signal that fact, so that the next collection will</span></span><br><span class="line"><span class="comment">** go to &#x27;stepgenfull&#x27;.</span></span><br><span class="line"><span class="comment">**</span></span><br><span class="line"><span class="comment">** &#x27;GCdebt &lt;= 0&#x27; means an explicit call to GC step with &quot;size&quot; zero;</span></span><br><span class="line"><span class="comment">** in that case, do a minor collection.</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">genstep</span> <span class="params">(lua_State *L, global_State *g)</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (g-&gt;lastatomic != <span class="number">0</span>)  <span class="comment">/* last collection was a bad one? */</span></span><br><span class="line">    stepgenfull(L, g);  <span class="comment">/* do a full step */</span></span><br><span class="line">  <span class="keyword">else</span> &#123;</span><br><span class="line">    lu_mem majorbase = g-&gt;GCestimate;  <span class="comment">//正在使用的非垃圾内存的估计值</span></span><br><span class="line">    lu_mem majorinc = (majorbase / <span class="number">100</span>) * getgcparam(g-&gt;genmajormul);</span><br><span class="line">    <span class="keyword">if</span> (g-&gt;GCdebt &gt; <span class="number">0</span> &amp;&amp; gettotalbytes(g) &gt; majorbase + majorinc) &#123;	<span class="comment">//总使用字节数大于非垃圾内存的估计值与主要增量的估计值的话</span></span><br><span class="line">      lu_mem numobjs = fullgen(L, g);  <span class="comment">/* do a major collection */</span></span><br><span class="line">      <span class="keyword">if</span> (gettotalbytes(g) &lt; majorbase + (majorinc / <span class="number">2</span>)) &#123;</span><br><span class="line">        <span class="comment">/* collected at least half of memory growth since last major</span></span><br><span class="line"><span class="comment">           collection; keep doing minor collections */</span></span><br><span class="line">        setminordebt(g);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">else</span> &#123;  <span class="comment">/* bad collection */</span></span><br><span class="line">        g-&gt;lastatomic = numobjs;  <span class="comment">/* signal that last collection was bad */</span></span><br><span class="line">        setpause(g);  <span class="comment">/* do a long wait for next (major) collection */</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;  <span class="comment">/* regular case; do a minor collection */</span></span><br><span class="line">      youngcollection(L, g);</span><br><span class="line">      setminordebt(g);</span><br><span class="line">      g-&gt;GCestimate = majorbase;  <span class="comment">/* preserve base value */</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  lua_assert(isdecGCmodegen(g));</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
@@ -386,34 +392,28 @@
 <ul>
 <li>收尾阶段，缩减字符串表，重新计算非垃圾内存的评估值。</li>
 </ul>
-<h4 id="major-collection"><a href="#major-collection" class="headerlink" title="major collection"></a>major collection</h4><p>一次major collection其实就是一次全量的增量回收</p>
+<h4 id="major-collection"><a href="#major-collection" class="headerlink" title="major collection"></a>major collection</h4><p>触发一次major的条件是：gettotalbytes(g) &gt; majorbase + majorinc</p>
+<p>也就是现在的字节数已经大于非垃圾内存的预估值+增量的预估值。</p>
+<p>增量的预估值：(majorbase / 100) * getgcparam(g-&gt;genmajormul)</p>
+<p>一次major collection其实就是一次全量的增量回收</p>
 <p>首先会将所有的对象都设置为白色。</p>
-<p>所有的垃圾回收对象都具备一个颜色标记位：</p>
-<ul>
-<li>白色代表该内存尚未被标记</li>
-<li>灰色代表该内存已被标记，但是其引用可能尚未被标记</li>
-<li>黑色代表该内存及其引用已被标记</li>
-</ul>
-<p>在一次垃圾回收开始时所有的对象都会被标记为白色</p>
-<p>**<em>ObjectBarrier</em> **: 创建一个对象时会检测该对象与其对其他变量的引用关系，如果对方是old1世代的变量，那么新变量将会被置于old0，因为对方是黑色节点，下次标记会直接跳过，新对象就难以被标记。</p>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">static</span> <span class="type">void</span> <span class="title">enterinc</span> <span class="params">(global_State *g)</span> </span>&#123;</span><br><span class="line">  <span class="built_in">whitelist</span>(g, g-&gt;allgc);   </span><br><span class="line">  g-&gt;reallyold = g-&gt;old1 = g-&gt;survival = <span class="literal">NULL</span>;</span><br><span class="line">  <span class="built_in">whitelist</span>(g, g-&gt;finobj);  </span><br><span class="line">  <span class="built_in">whitelist</span>(g, g-&gt;tobefnz); </span><br><span class="line">  g-&gt;finobjrold = g-&gt;finobjold1 = g-&gt;finobjsur = <span class="literal">NULL</span>;</span><br><span class="line">  g-&gt;gcstate = GCSpause;</span><br><span class="line">  g-&gt;gckind = KGC_INC;</span><br><span class="line">  g-&gt;lastatomic = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>之后entergen函数开始进行垃圾回收，</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> lu_mem <span class="title function_">entergen</span> <span class="params">(lua_State *L, global_State *g)</span> &#123;</span><br><span class="line">  lu_mem numobjs;</span><br><span class="line">  luaC_runtilstate(L, bitmask(GCSpause));  <span class="comment">/* 简单对象标记为黑色，复杂对象标记为灰色 */</span></span><br><span class="line">  luaC_runtilstate(L, bitmask(GCSpropagate));  <span class="comment">/* start new cycle */</span></span><br><span class="line">  numobjs = atomic(L);  <span class="comment">/* propagates all and then do the atomic stuff */</span></span><br><span class="line">  atomic2gen(L, g);</span><br><span class="line">  <span class="keyword">return</span> numobjs;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>luaC_runtilstate将调用singlestep，后者是垃圾回收的状态机，它将垃圾回收换分为不同的状态，分步完成。</p>
+<p>然后进行一次全量的增量回收。</p>
 <h4 id="增量回收"><a href="#增量回收" class="headerlink" title="增量回收"></a>增量回收</h4><p>Lua的增量回收分成了多个步骤完成。主要由函数  static lu_mem singlestep (lua_State *L) 实现。</p>
 <ul>
 <li>GCPause：标记根节点对象</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">restartcollection</span> <span class="params">(global_State *g)</span> &#123;</span><br><span class="line">  cleargraylists(g);</span><br><span class="line">  markobject(g, g-&gt;mainthread);</span><br><span class="line">  markvalue(g, &amp;g-&gt;l_registry);</span><br><span class="line">  markmt(g);</span><br><span class="line">  markbeingfnz(g);  <span class="comment">/* mark any finalizing object left from previous cycle */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从当前线程，注册表，元表，final对象，开始标记。</p>
+<ul>
 <li>GCSpropagate：将一个灰色对象转换为黑色对象</li>
 <li>GCSenteratomic：这一步是标记阶段的收尾，并且开始按标记回收内存</li>
 <li>GCSswpallgc，GCSswpfinobj，GCSswptobefnz：就是对不同的内存进行回收</li>
 <li>GCSswpend：回收字符串</li>
 </ul>
+<hr>
+<p>就像增量回收，是分步骤完成的，就会出现一个问题，标记完成之后继续执行程序，此时产生了新的对象，且指向已被标记为黑色的对象，之后的标记时因为不会再扫描黑色对象，那么新对象就会被视为垃圾。因此Lua再生成新对象时会产生ObjectBarrier</p>
+<p>**<em>ObjectBarrier</em> **: 创建一个对象时会检测该对象与其对其他变量的引用关系，如果对方是old1世代的变量，那么新变量将会被置于old0.</p>
 <hr>
 <h2 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h2><p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kekec/p/11768935.html">深入理解Lua虚拟机</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.codingnow.com/download/readinglua.pdf">Lua源码欣赏</a></p>
